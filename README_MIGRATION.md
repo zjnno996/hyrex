@@ -10,8 +10,10 @@ excluded.
 
 | Path | Purpose |
 |---|---|
-| `src/vllm-hyrex` | Current HyRex vLLM implementation and experiment drivers |
-| `src/lmcache-hyrex` | Current LMCache independent-KV/exact-state implementation |
+| `src/hyrex-vllm` | Formal HyRex vLLM implementation: heterogeneous recovery scheduler, CPU/GPU cache policy, campaign drivers, and tests |
+| `src/hyrex-lmcache` | Formal HyRex LMCache implementation: independent hybrid-state lookup/transfer path and tests |
+| `src/vllm-hyrex` | Controlled Motivation vLLM prototype for Deep-KV and exact tail-state recovery |
+| `src/lmcache-hyrex` | Controlled Motivation LMCache prototype paired with `src/vllm-hyrex` |
 | `src/vllm-native` | Clean vLLM baseline used by the controlled experiment |
 | `src/lmcache-native` | Clean LMCache baseline used by the controlled experiment |
 | `paper/` | WWW manuscript, motivation figure source, and compiled PDF |
@@ -27,6 +29,13 @@ The controlled experiment entry points are:
 - `results/run_controlled_gap_sweep_20261001.py`
 - `results/analyze_controlled_gap_sweep_20261001.py`
 - `src/vllm-hyrex/benchmarks/motivation/audit_real_sharegpt_mp.py`
+
+The formal HyRex campaign entry point is:
+
+- `src/hyrex-vllm/benchmarks/reproductions/run_hyrex_formal_campaign.py`
+
+See `VALIDATION_CODE.md` for the complete validation index and
+`HYREX_PAPER_AND_EXPERIMENT_PLAN.md` for the research/evaluation plan.
 
 ## REFERENCE: useful but not the active implementation
 
@@ -59,8 +68,10 @@ and dirty-file inventories are in `environment/SOURCE_STATE.md`.
 2. Run `./restore_layout.sh` if the new container should retain the absolute
    paths used by the current experiment scripts.
 3. Build a fresh environment rather than copying the old `.venv`.
-4. Put `src/lmcache-hyrex` and `src/vllm-hyrex` first on `PYTHONPATH` for HyRex
-   runs; use the two `*-native` trees for the clean baseline.
+4. Put `src/hyrex-lmcache` and `src/hyrex-vllm` first on `PYTHONPATH` for formal
+   HyRex runs. Use `src/lmcache-hyrex` and `src/vllm-hyrex` only for the
+   controlled Motivation experiment, and use the two `*-native` trees for its
+   clean baseline.
 5. Start the container with at least 6 GiB shared memory, for example
    `--shm-size=6g`. The old container had only 64 MiB and therefore used the
    slower pickle IPC fallback.

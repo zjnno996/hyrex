@@ -2,11 +2,15 @@
 """Audit the controlled gap sweep and emit paper-ready tables."""
 
 import json
+import os
 import statistics
 from pathlib import Path
 
 
-ROOT = Path("/root/hyrex_results/controlled_gap_sweep_20261001_v2")
+ROOT = Path(os.environ.get(
+    "HYREX_CONTROLLED_ROOT",
+    "/root/hyrex_results/controlled_gap_sweep_20261001_v2",
+))
 GAPS = (0, 64, 128, 256, 384, 512)
 ARMS = ("native", "aligned", "deep", "exact_recovery_only", "exact_steady")
 COARSE = 1056

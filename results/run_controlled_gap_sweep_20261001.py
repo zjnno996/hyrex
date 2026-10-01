@@ -5,18 +5,25 @@ import json
 import os
 import statistics
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 
-ROOT = Path("/root/hyrex_results/controlled_gap_sweep_20261001_v2")
-RUNNER = Path("/root/exp-vllm-single-forward/benchmarks/motivation/audit_real_sharegpt_mp.py")
-PYTHON = Path("/root/hybrid-model-offloading/.venv/bin/python")
+ROOT = Path(os.environ.get(
+    "HYREX_CONTROLLED_ROOT",
+    "/root/hyrex_results/controlled_gap_sweep_20261001_v2",
+))
+RUNNER = Path(os.environ.get(
+    "HYREX_AUDIT_RUNNER",
+    "/root/exp-vllm-single-forward/benchmarks/motivation/audit_real_sharegpt_mp.py",
+))
+PYTHON = Path(os.environ.get("HYREX_PYTHON", sys.executable))
 GAPS = (0, 64, 128, 256, 384, 512)
 COARSE = 1056
 APPEND = 128
 REPETITIONS = 5
-GPU = "2"
+GPU = os.environ.get("HYREX_GPU", "2")
 
 
 def load(path):

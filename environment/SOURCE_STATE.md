@@ -7,13 +7,37 @@ tree and were not portable.
 
 | Snapshot | Original branch | Base commit |
 |---|---|---|
+| `src/hyrex-vllm` | `hyrec/hyrex` | `0db421f1d9a3bc213db608b90573344a4faeae0e` |
+| `src/hyrex-lmcache` | `hyrex-independent-hybrid` | `140819c9d57a975dbc5678a6459a218e544cb58b` |
 | `src/vllm-hyrex` | `motivation/single-forward-20260927` | `cd2977fc04e0ab36656f964dccc6986833b01706` |
 | `src/lmcache-hyrex` | `motivation/single-forward-20260927` | `7a832182564f609bf52f3ab505dbcd58ac0cfa27` |
 | `src/vllm-native` | `motivation/pristine-3way-20260927` | `0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665` |
 | `src/lmcache-native` | `motivation/pristine-3way-20260927` | `140819c9d57a975dbc5678a6459a218e544cb58b` |
 | `src/vllm-marconi` | `hyrec/baseline-marconi` | `76af32295db87d562cc453c9260bd72d0b628c89` |
 
-## Active HyRex local changes
+## Formal HyRex local changes
+
+`src/hyrex-vllm`:
+
+- `benchmarks/reproductions/{build_online_main_table,hybrid_baseline_config,run_hyrex_formal_campaign,run_native_independent_cells,run_online_session_cell,run_online_session_matrix,run_partial_prefix_cells,sharegpt_hybrid_trace_e2e}.py`
+- `benchmarks/reproductions/HYREX_EXPERIMENT_DESIGN.md`
+- `vllm/v1/kv_offload/{hyrex_scheduler,hyrex_vllm}.py`
+- `vllm/v1/kv_offload/cpu/manager.py`
+- `vllm/v1/kv_offload/cpu/policies/{base,hyrex}.py`
+- `vllm/v1/core/sched/scheduler.py`
+- `vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py`
+- `vllm/model_executor/layers/rotary_embedding/common.py`
+- HyRex scheduler, policy, manager, and integration tests under `tests/v1/kv_offload/`
+
+`src/hyrex-lmcache`:
+
+- Hybrid KV-group and vLLM integration changes under `lmcache/integration/vllm/`
+- Multiprocess lookup, protocol, transfer, engine-context, CUDA cache-context,
+  and stream-order changes under `lmcache/v1/`
+- `lmcache/integration/vllm/tail_probe_connector.py`
+- HyRex bulk-page, tail-probe, stream-order, and integration tests under `tests/v1/`
+
+## Controlled Motivation prototype changes
 
 `src/vllm-hyrex`:
 
