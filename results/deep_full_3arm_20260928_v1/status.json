@@ -1,0 +1,6 @@
+{
+  "state": "failed",
+  "pid": 1469856,
+  "updated_unix": 1790576424.774104,
+  "error": "CalledProcessError(1, ['/root/hybrid-model-offloading/.venv/bin/python', '/root/exp-lmcache-deep-overhead/tests/v1/multiprocess/test_hyrex_lookup_pipeline_standalone.py'])"
+}

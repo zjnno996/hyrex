@@ -1,0 +1,4 @@
+model.safetensors-00001-of-00004.safetensors	5276436216 bytes
+model.safetensors-00002-of-00004.safetensors	5335161512 bytes
+model.safetensors-00003-of-00004.safetensors	5368717440 bytes
+model.safetensors-00004-of-00004.safetensors	3325995712 bytes

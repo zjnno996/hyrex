@@ -1,0 +1,678 @@
+diff --git a/lmcache/integration/vllm/lmcache_mp_connector.py b/lmcache/integration/vllm/lmcache_mp_connector.py
+index 670f3eb..9c696c4 100644
+--- a/lmcache/integration/vllm/lmcache_mp_connector.py
++++ b/lmcache/integration/vllm/lmcache_mp_connector.py
+@@ -1263,6 +1263,12 @@ class LMCacheMPConnector(KVConnectorBase_V1, SupportsHMA):
+             # usable prefix without independently loading Full KV as well.
+             return 0, False
+ 
++        pipeline = (self._hyrex_full_group_id is not None
++                    and self._hyrex_deep_lookup
++                    and os.getenv("LMCACHE_HYREX_PIPELINE_LOOKUP") == "1")
++        deferred_waits = [] if pipeline else None
++        batch_submissions = ([] if pipeline and
++                             os.getenv("LMCACHE_HYREX_COMBINED_LOOKUP") == "1" else None)
+         self.scheduler_adapter.maybe_submit_lookup_request(
+             request.request_id,
+             token_ids=tracker.get_token_ids(),
+@@ -1273,6 +1279,8 @@ class LMCacheMPConnector(KVConnectorBase_V1, SupportsHMA):
+                 if self._hyrex_page_size and self._hyrex_full_group_id is not None
+                 else None
+             ),
++            deferred_waits=deferred_waits,
++            batch_submissions=batch_submissions,
+         )
+         full_lookup_id = request.request_id + ":hyrex-full"
+         if self._hyrex_full_group_id is not None and self._hyrex_deep_lookup:
+@@ -1282,14 +1290,24 @@ class LMCacheMPConnector(KVConnectorBase_V1, SupportsHMA):
+                 cache_salt=tracker.cache_salt,
+                 object_group_ids=[self._hyrex_full_group_id],
+                 chunk_size=self._hyrex_page_size or None,
++                deferred_waits=deferred_waits,
++                batch_submissions=batch_submissions,
+             )
+ 
+-        ret = self.scheduler_adapter.check_lookup_result(request.request_id)
+-        full_ret = (
+-            self.scheduler_adapter.check_lookup_result(full_lookup_id)
+-            if self._hyrex_full_group_id is not None and self._hyrex_deep_lookup
+-            else ret
+-        )
++        if pipeline:
++            if batch_submissions is not None:
++                self.scheduler_adapter.submit_lookup_batch(batch_submissions)
++            for finish in deferred_waits:
++                finish()
++            ret, full_ret = self.scheduler_adapter.check_lookup_results(
++                [request.request_id, full_lookup_id])
++        else:
++            ret = self.scheduler_adapter.check_lookup_result(request.request_id)
++            full_ret = (
++                self.scheduler_adapter.check_lookup_result(full_lookup_id)
++                if self._hyrex_full_group_id is not None and self._hyrex_deep_lookup
++                else ret
++            )
+         if ret is None or full_ret is None:
+             return None, True
+ 
+diff --git a/lmcache/integration/vllm/vllm_multi_process_adapter.py b/lmcache/integration/vllm/vllm_multi_process_adapter.py
+index f739397..d0e8871 100644
+--- a/lmcache/integration/vllm/vllm_multi_process_adapter.py
++++ b/lmcache/integration/vllm/vllm_multi_process_adapter.py
+@@ -679,6 +679,8 @@ class LMCacheMPSchedulerAdapter:
+         cache_salt: str = "",
+         object_group_ids: list[int] | None = None,
+         chunk_size: int | None = None,
++        deferred_waits: list | None = None,
++        batch_submissions: list | None = None,
+     ):
+         """
+         Submit a new lookup request to LMCache if there is no ongoing request.
+@@ -724,7 +726,7 @@ class LMCacheMPSchedulerAdapter:
+             cache_salt=cache_salt,
+         ).no_worker_id_version()
+ 
+-        futures: dict[str, MessagingFuture[Any]] = {
++        futures: dict[str, MessagingFuture[Any]] = {} if batch_submissions is not None else {
+             url: send_lmcache_request(
+                 self.mq_clients[url],
+                 RequestType.LOOKUP_GROUPS
+@@ -734,25 +736,30 @@ class LMCacheMPSchedulerAdapter:
+             )
+             for url in self._server_urls
+         }
+-
+-        # Any one server failure means the whole lookup fails.
+-        for url, fut in futures.items():
+-            try:
+-                fut.result(timeout=self._mq_timeout)
+-            except TimeoutError:
+-                logger.warning(
+-                    "LOOKUP to %s timed out after %ss. Marking server as unhealthy.",
+-                    url,
+-                    self._mq_timeout,
+-                )
+-                self._health_events[url].clear()
+-                return
+-
+-        self._pending_lookups.add(request_id)
+-        self._lookup_chunk_sizes[request_id] = lookup_chunk_size
+-        self._lookup_params[request_id] = (token_ids, cache_salt)
+-        if object_group_ids is not None:
+-            self._lookup_groups[request_id] = object_group_ids
++        if batch_submissions is not None:
++            assert deferred_waits is not None and object_group_ids is not None
++            batch_submissions.append((key, object_group_ids, futures))
++
++        def finish_submission():
++            # Preserve lock bookkeeping and health behavior; only overlap the
++            # independent RPCs, never report a hit before acknowledgements.
++            for url, fut in futures.items():
++                try:
++                    fut.result(timeout=self._mq_timeout)
++                except TimeoutError:
++                    logger.warning("LOOKUP to %s timed out. Marking unhealthy.", url)
++                    self._health_events[url].clear()
++                    return
++            self._pending_lookups.add(request_id)
++            self._lookup_chunk_sizes[request_id] = lookup_chunk_size
++            self._lookup_params[request_id] = (token_ids, cache_salt)
++            if object_group_ids is not None:
++                self._lookup_groups[request_id] = object_group_ids
++
++        if deferred_waits is None:
++            finish_submission()
++        else:
++            deferred_waits.append(finish_submission)
+ 
+     def _free_inconsistent_lookup_locks(
+         self,
+@@ -801,7 +808,7 @@ class LMCacheMPSchedulerAdapter:
+                 )
+ 
+     @_lmcache_nvtx_annotate
+-    def check_lookup_result(self, request_id: str) -> int | None:
++    def check_lookup_result(self, request_id: str, _futures=None) -> int | None:
+         """
+         Check the result of a previously submitted lookup request.
+ 
+@@ -837,7 +844,7 @@ class LMCacheMPSchedulerAdapter:
+         per_server = self._per_server_hits.setdefault(request_id, {})
+         unresolved_urls = [u for u in self._server_urls if u not in per_server]
+ 
+-        futures: dict[str, MessagingFuture[Any]] = {
++        futures: dict[str, MessagingFuture[Any]] = _futures if _futures is not None else {
+             url: send_lmcache_request(
+                 self.mq_clients[url],
+                 RequestType.QUERY_PREFETCH_STATUS,
+@@ -881,6 +888,58 @@ class LMCacheMPSchedulerAdapter:
+         self._finished_lookup_results[request_id] = token_count
+         return token_count
+ 
++    def check_lookup_results(self, request_ids: list[str]) -> list[int | None]:
++        """Send independent status RPCs before waiting; retain normal aggregation."""
++        if os.getenv("LMCACHE_HYREX_COMBINED_LOOKUP") == "1":
++            from concurrent.futures import Future
++            pending = {r: {} for r in request_ids
++                       if r in self._pending_lookups and self.is_healthy
++                       and r not in self._finished_lookup_results}
++            jobs = {}
++            for url in self._server_urls:
++                ids = [r for r in pending if url not in self._per_server_hits.get(r, {})]
++                if ids:
++                    jobs[url] = (ids, send_lmcache_request(
++                        self.mq_clients[url], RequestType.HYREX_QUERY_BATCH, [ids]))
++            for url, (ids, job) in jobs.items():
++                try:
++                    values = job.result(timeout=self._mq_timeout)
++                    if len(values) != len(ids):
++                        raise ValueError("Invalid hybrid query response")
++                except TimeoutError:
++                    self._health_events[url].clear()
++                    return [0 for _ in request_ids]
++                for r, value in zip(ids, values, strict=True):
++                    resolved = Future()
++                    resolved.set_result(value)
++                    pending[r][url] = resolved
++            return [self.check_lookup_result(r, _futures=pending.get(r)) for r in request_ids]
++        futures = {}
++        for request_id in request_ids:
++            if (request_id not in self._pending_lookups or not self.is_healthy
++                    or request_id in self._finished_lookup_results):
++                continue
++            observed = self._per_server_hits.get(request_id, {})
++            futures[request_id] = {
++                url: send_lmcache_request(
++                    self.mq_clients[url], RequestType.QUERY_PREFETCH_STATUS,
++                    [request_id])
++                for url in self._server_urls if url not in observed
++            }
++        return [self.check_lookup_result(r, _futures=futures.get(r))
++                for r in request_ids]
++
++    def submit_lookup_batch(self, submissions):
++        if not submissions:
++            return
++        keys, groups, targets = zip(*submissions, strict=True)
++        for url in self._server_urls:
++            future = send_lmcache_request(
++                self.mq_clients[url], RequestType.HYREX_LOOKUP_BATCH,
++                [list(keys), self.tp_size, list(groups)])
++            for target in targets:
++                target[url] = future
++
+     def num_blocks_per_chunk(self) -> int:
+         """
+         Returns:
+@@ -1561,6 +1620,25 @@ class LMCacheMPWorkerAdapter:
+         """
+         if cache_salts is None:
+             cache_salts = [""] * len(request_ids)
++        if (os.getenv("LMCACHE_HYREX_COMBINED_RETRIEVE") == "1"
++                and len(ops) > 1 and len(set(request_ids)) == 1
++                and len(ops) == len(request_ids) == len(cache_salts)
++                and all(op.object_group_ids is not None for op in ops)
++                and isinstance(self.transfer_ctx, LMCacheDrivenTransferContext)):
++            self._ensure_heartbeat_started()
++            if self.is_healthy:
++                keys = [self._create_key(op.token_ids, op.start, op.end,
++                                        request_id=r, cache_salt=s)
++                        for r, op, s in zip(request_ids, ops, cache_salts, strict=True)]
++                future = self.transfer_ctx.submit_retrieve_batch(
++                    keys, self.instance_id,
++                    [self._block_ids_per_group(op) for op in ops], event,
++                    [op.skip_first_n_tokens for op in ops],
++                    [op.object_group_ids for op in ops])
++                self.retrieve_futures.setdefault(request_ids[0], []).append(
++                    (future, [b for op in ops for b in op.flat_block_ids]))
++                self.retrieve_events[request_ids[0]] = event
++                return
+         for request_id, op, salt in zip(request_ids, ops, cache_salts, strict=False):
+             self.submit_retrieve_request(request_id, op, event, cache_salt=salt)
+ 
+diff --git a/lmcache/v1/multiprocess/modules/lmcache_driven_transfer.py b/lmcache/v1/multiprocess/modules/lmcache_driven_transfer.py
+index bc5d6c6..9125799 100644
+--- a/lmcache/v1/multiprocess/modules/lmcache_driven_transfer.py
++++ b/lmcache/v1/multiprocess/modules/lmcache_driven_transfer.py
+@@ -677,6 +677,14 @@ def _transfer_batched_full_pages(
+     h2d = direction == lmc_ops.TransferDirection.H2D
+     if not h2d and direction != lmc_ops.TransferDirection.D2H:
+         return False
++    fused_layout = (
++        os.getenv("LMCACHE_HYREX_FUSED_PAGE_LAYOUT") == "1"
++        and buffer.is_cuda and all(layer.is_contiguous() for layer in layers)
++        and os.getenv("LMCACHE_HYREX_VERIFY_FULL_H2D") != "1"
++    )
++    if fused_layout:
++        from lmcache.v1.multiprocess.modules.hyrex_page_transfer import transfer_pages
++        pointers = cache_context.get_kernel_group_kv_pointers(kid)
+     copies = batches = 0
+     for begin in range(0, len(memory_objs), capacity):
+         end = min(begin + capacity, len(memory_objs))
+@@ -684,8 +692,11 @@ def _transfer_batched_full_pages(
+             end-begin, 2, len(layers), page_size, int(shape.nh), int(shape.hs))
+         ids = block_ids_gpu[kid][begin:end]
+         if not h2d:
+-            for i, layer in enumerate(layers):
+-                torch.index_select(layer, 0, ids, out=pages[:, :, i])
++            if fused_layout:
++                transfer_pages(pages, pointers, ids, False)
++            else:
++                for i, layer in enumerate(layers):
++                    torch.index_select(layer, 0, ids, out=pages[:, :, i])
+         start = begin
+         while start < end:
+             stop = start + 1
+@@ -710,7 +721,9 @@ def _transfer_batched_full_pages(
+             copies += 1
+             start = stop
+         if h2d:
+-            for i, layer in enumerate(layers):
++            if fused_layout:
++                transfer_pages(pages, pointers, ids, True)
++            for i, layer in enumerate(layers) if not fused_layout else ():
+                 layer.index_copy_(0, ids, pages[:, :, i])
+                 if os.getenv("LMCACHE_HYREX_VERIFY_FULL_H2D") == "1":
+                     expected_page = torch.stack([
+@@ -721,8 +734,8 @@ def _transfer_batched_full_pages(
+                     if not torch.equal(actual.view(torch.uint8), expected_page.contiguous().view(torch.uint8)):
+                         raise RuntimeError("Batched Full KV H2D byte mismatch")
+         batches += 1
+-    logger.info("HyRex Full-KV batched %s: %d pages, %d host copies, %d layer batches",
+-                "H2D" if h2d else "D2H", len(memory_objs), copies, batches)
++    logger.info("HyRex Full-KV batched %s: %d pages, %d host copies, %d layer batches, fused_layout=%s",
++                "H2D" if h2d else "D2H", len(memory_objs), copies, batches, fused_layout)
+     return True
+ 
+ 
+@@ -1086,6 +1099,8 @@ class LMCacheDrivenTransferModule(InstanceLivenessTarget):
+                 self.retrieve_groups,
+                 ThreadPoolType.AFFINITY,
+             ),
++            HandlerSpec(RequestType.HYREX_RETRIEVE_BATCH,
++                        self.retrieve_batch, ThreadPoolType.AFFINITY),
+         ]
+ 
+     def report_status(self) -> dict:
+@@ -1542,6 +1557,23 @@ class LMCacheDrivenTransferModule(InstanceLivenessTarget):
+             skip_first_n_tokens, object_group_ids,
+         )
+ 
++    def retrieve_batch(self, keys, instance_id, block_ids, event_handle, skips, groups):
++        """One IPC response; final stream event covers every subgroup transfer.
++
++        Reuse per-group validation and lock release. Do not short-circuit a
++        failed subgroup: the other prefetched groups must still be consumed.
++        """
++        if not keys or not (len(keys) == len(block_ids) == len(skips) == len(groups)):
++            raise ValueError("Invalid hybrid retrieve batch")
++        success = True
++        completion = event_handle
++        for key, ids, skip, selected in zip(keys, block_ids, skips, groups, strict=True):
++            completion, ok = self._retrieve_selected(
++                key, instance_id, ids, event_handle, skip, selected)
++            success = success and ok
++        logger.info("HyRex combined retrieve: %d groups, success=%s", len(keys), success)
++        return completion, success
++
+     def _retrieve_selected(
+         self,
+         key: IPCCacheServerKey,
+diff --git a/lmcache/v1/multiprocess/modules/lookup.py b/lmcache/v1/multiprocess/modules/lookup.py
+index 556d6a0..5a2056a 100644
+--- a/lmcache/v1/multiprocess/modules/lookup.py
++++ b/lmcache/v1/multiprocess/modules/lookup.py
+@@ -126,6 +126,8 @@ class LookupModule:
+             List of handler specs for lookup-related request types.
+         """
+         return [
++            HandlerSpec(RequestType.HYREX_LOOKUP_BATCH, self.lookup_batch, ThreadPoolType.NORMAL),
++            HandlerSpec(RequestType.HYREX_QUERY_BATCH, self.query_batch, ThreadPoolType.NORMAL),
+             HandlerSpec(RequestType.LOOKUP, self.lookup, ThreadPoolType.NORMAL),
+             HandlerSpec(
+                 RequestType.LOOKUP_GROUPS, self.lookup_groups, ThreadPoolType.NORMAL
+@@ -162,6 +164,15 @@ class LookupModule:
+             ),
+         ]
+ 
++    def lookup_batch(self, keys, tp_size, groups):
++        if not keys or len(keys) != len(groups):
++            raise ValueError("Invalid hybrid lookup batch")
++        for key, selected in zip(keys, groups, strict=True):
++            self.lookup_groups(key, tp_size, selected)
++
++    def query_batch(self, request_ids):
++        return [self.query_prefetch_status(request_id) for request_id in request_ids]
++
+     def report_status(self) -> dict[str, int]:
+         """Return module-specific status information.
+ 
+diff --git a/lmcache/v1/multiprocess/protocols/base.py b/lmcache/v1/multiprocess/protocols/base.py
+index e18d3e8..0891ded 100644
+--- a/lmcache/v1/multiprocess/protocols/base.py
++++ b/lmcache/v1/multiprocess/protocols/base.py
+@@ -99,6 +99,9 @@ class RequestType(enum.Enum):
+ 
+     # Experimental transfer intermediate tensor
+     GET_EXPERIMENTAL = enum.auto()
++    HYREX_RETRIEVE_BATCH = enum.auto()
++    HYREX_LOOKUP_BATCH = enum.auto()
++    HYREX_QUERY_BATCH = enum.auto()
+ 
+ 
+ @dataclass
+diff --git a/lmcache/v1/multiprocess/protocols/engine.py b/lmcache/v1/multiprocess/protocols/engine.py
+index e7f1a7d..0cae237 100644
+--- a/lmcache/v1/multiprocess/protocols/engine.py
++++ b/lmcache/v1/multiprocess/protocols/engine.py
+@@ -58,6 +58,9 @@ class RegisterEngineDrivenContextResponse:
+ 
+ # Define request names for this protocol group
+ REQUEST_NAMES = [
++    "HYREX_RETRIEVE_BATCH",
++    "HYREX_LOOKUP_BATCH",
++    "HYREX_QUERY_BATCH",
+     "REGISTER_KV_CACHE",
+     "UNREGISTER_KV_CACHE",
+     "REGISTER_Q_CACHE",
+@@ -95,6 +98,18 @@ def get_protocol_definitions() -> dict[str, ProtocolDefinition]:
+         Dictionary mapping request names to their protocol definitions
+     """
+     return {
++        "HYREX_LOOKUP_BATCH": ProtocolDefinition(
++            payload_classes=[list[KeyType], int, list[list[int]]],
++            response_class=None, handler_type=HandlerType.BLOCKING),
++        "HYREX_QUERY_BATCH": ProtocolDefinition(
++            payload_classes=[list[str]], response_class=list[int | None],
++            handler_type=HandlerType.BLOCKING),
++        "HYREX_RETRIEVE_BATCH": ProtocolDefinition(
++            payload_classes=[list[KeyType], int, list[list[list[int]]], bytes,
++                             list[int], list[list[int]]],
++            response_class=tuple[bytes, bool],
++            handler_type=HandlerType.BLOCKING,
++        ),
+         # Register KV Cache
+         # Payload:
+         #   - instance_id: int - Unique identifier for the engine instance
+diff --git a/lmcache/v1/multiprocess/transfer_context/worker_transfer.py b/lmcache/v1/multiprocess/transfer_context/worker_transfer.py
+index fe2c72f..3587735 100644
+--- a/lmcache/v1/multiprocess/transfer_context/worker_transfer.py
++++ b/lmcache/v1/multiprocess/transfer_context/worker_transfer.py
+@@ -627,6 +627,16 @@ class LMCacheDrivenTransferContext(TransferContext):
+             + ([object_group_ids] if object_group_ids is not None else []),
+         ).to_device_future(device=self._device)
+ 
++    def submit_retrieve_batch(self, keys, instance_id, block_ids, event, skips, groups):
++        if (self._mq_client is None or self._send_request is None
++                or self._device is None or self._event_backend is None):
++            raise RuntimeError("Transfer context is not registered")
++        handle = self._event_backend.export_event(event, self._device)
++        return self._send_request(
++            self._mq_client, RequestType.HYREX_RETRIEVE_BATCH,
++            [keys, instance_id, block_ids, handle, skips, groups],
++        ).to_device_future(device=self._device)
++
+     def close(self) -> None:
+         """Release the message queue and cached event-backend state."""
+         self._mq_client = None
+diff --git a/tests/v1/multiprocess/DEEP_LOOKUP_ABLATION.md b/tests/v1/multiprocess/DEEP_LOOKUP_ABLATION.md
+new file mode 100644
+index 0000000..d1182ee
+--- /dev/null
++++ b/tests/v1/multiprocess/DEEP_LOOKUP_ABLATION.md
+@@ -0,0 +1,22 @@
++# Deep-KV overhead, phase 1
++
++Only `LMCACHE_HYREX_PIPELINE_LOOKUP=1` changes behavior. Both independent
++LOOKUP submissions are sent before awaiting acknowledgements; both status
++queries are sent before awaiting their replies. Existing hit aggregation,
++cache-salt isolation, per-group locks, health handling and fallback remain.
++This overlaps RPC waiting, not GPU computation, and does not reduce RPC count.
++
++The standalone CPU check executes the actual adapter methods with fake futures.
++Run `python tests/v1/multiprocess/test_hyrex_lookup_pipeline_standalone.py`.
++It covers send-before-wait, 528/16 boundaries, pending/cached/missing results,
++multi-server inconsistent-hit lock release and submission timeout.
++
++The ABBA runner waits for native_tail_abba_20260928_v3 to complete before using
++GPU 1. Four identical 4-session, 10-turn passes compare flag 0/1/1/0 in eager
++mode with the frozen deep-KV model code, startup warmup and per-request GPU
++prefix clears. CPU LMCache persists between turns. Each pass starts a new
++service. First-token text, cache-hit lengths, reset success and formal JIT
++checks gate the result. These finite checks are not full numerical equivalence.
++
++Not implemented here: a combined wire-protocol lookup/retrieve, fused scatter,
++or Q-only normalization/RoPE changes. No TTFT gain is claimed before the run.
+diff --git a/tests/v1/multiprocess/run_deep_lookup_ablation.py b/tests/v1/multiprocess/run_deep_lookup_ablation.py
+new file mode 100644
+index 0000000..0ad9b3b
+--- /dev/null
++++ b/tests/v1/multiprocess/run_deep_lookup_ablation.py
+@@ -0,0 +1,92 @@
++"""Run the lookup-only ABBA ablation after the existing GPU-1 job finishes."""
++import json
++import os
++from pathlib import Path
++import statistics
++import subprocess
++import sys
++import time
++
++ROOT = Path('/root/hyrex_results/deep_lookup_abba_20260928_v1')
++PRIOR = Path('/root/hyrex_results/native_tail_abba_20260928_v3/status.json')
++FROZEN = Path('/root/hyrex_results/single_forward_3arm_4s10t_20260927_v1')
++SOURCE = str(Path(__file__).resolve().parents[3])
++
++
++def rows(path):
++    return [json.loads(s) for s in path.read_text().splitlines()]
++
++
++def status(state, **extra):
++    (ROOT / 'status.json').write_text(json.dumps(
++        dict(state=state, pid=os.getpid(), updated_unix=time.time(), **extra), indent=2))
++
++
++def main():
++    ROOT.mkdir(exist_ok=False)
++    status('waiting_for_native_tail')
++    while True:
++        previous = json.loads(PRIOR.read_text())
++        if previous['state'] == 'completed':
++            break
++        if previous['state'] != 'running':
++            raise RuntimeError(f'Previous experiment is not running/completed: {previous}')
++        os.kill(previous['pid'], 0)  # fail if predecessor vanished; do not hang forever
++        time.sleep(10)
++    reference = rows(FROZEN / 'baseline/online.jsonl')[:40]
++    summary, matched = {}, None
++    for index, enabled in enumerate(('0', '1', '1', '0')):
++        name = f'{index+1}_pipeline_{enabled}'
++        out = ROOT / name
++        out.mkdir()
++        command = json.loads((FROZEN / 'deep/command.json').read_text())
++        for key, value in {'--output-dir': str(out), '--online-repetitions': '1',
++                           '--experimental-lmcache-source': SOURCE}.items():
++            command[command.index(key)+1] = value
++        env = {k: v for k, v in os.environ.items() if 'HYREX' not in k and not k.startswith('LMCACHE_')}
++        env.update(PYTHONSAFEPATH='1', CUDA_VISIBLE_DEVICES='1',
++                   PYTHONPATH=f'{SOURCE}:/root/exp-vllm-single-forward',
++                   VLLM_HYREX_SINGLE_FORWARD='1', LMCACHE_HYREX_LAST_STATE_ONLY='1',
++                   LMCACHE_HYREX_FULL_LOAD_TO_STATE='0',
++                   LMCACHE_HYREX_BATCH_FULL_PAGES='1', LMCACHE_HYREX_COALESCE_FULL_PAGES='1',
++                   VLLM_HYREX_Q_ONLY_REPLAY='1', LMCACHE_HYREX_PIPELINE_LOOKUP=enabled)
++        (out / 'command.json').write_text(json.dumps(dict(command=command, pipeline=enabled), indent=2))
++        status('running', arm=name)
++        with (out / 'runner.log').open('w') as log:
++            subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
++        data, resets = rows(out / 'online.jsonl'), rows(out / 'resets.jsonl')
++        assert len(data) == 40 and len(resets) == 39 and all(r['success'] for r in resets)
++        assert len(rows(out / 'warmup.jsonl')) == 10
++        assert all((r['session_id'], r['turn_index'], r['prompt_tokens'], r['first_text']) ==
++                   (o['session_id'], o['turn_index'], o['prompt_tokens'], o['first_text'])
++                   for r, o in zip(data, reference)), 'Native first-token mismatch'
++        if matched is None:
++            matched = data
++        assert all(r['cached_tokens'] == o['cached_tokens'] for r, o in zip(data, matched))
++        log = (out / 'vllm.log').read_text().split('Successfully reset prefix cache')
++        assert len(log) >= 11
++        assert 'Triton kernel JIT compilation during inference' not in ''.join(log[10:])
++        summary[name] = dict(requests=40, checks_passed=True,
++                             continuation_mean_ttft_ms=statistics.mean(r['ttft_ms'] for r in data if r['turn_index']>0),
++                             all_mean_ttft_ms=statistics.mean(r['ttft_ms'] for r in data))
++        (ROOT / 'summary.json').write_text(json.dumps(summary, indent=2))
++        print(name, summary[name], flush=True)
++        time.sleep(5)
++    status('completed', requests=160)
++
++
++if __name__ == '__main__':
++    if '--launch' in sys.argv:
++        if ROOT.exists():
++            raise SystemExit('Output already exists')
++        with Path(str(ROOT)+'.driver.log').open('x') as log:
++            p = subprocess.Popen([sys.executable, '-u', __file__], stdin=subprocess.DEVNULL,
++                                 stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
++        print('Queued independent driver', p.pid)
++    else:
++        try:
++            main()
++        except BaseException as exc:
++            if ROOT.exists():
++                status('failed', error=repr(exc))
++            raise
+diff --git a/tests/v1/multiprocess/test_hyrex_lookup_pipeline_standalone.py b/tests/v1/multiprocess/test_hyrex_lookup_pipeline_standalone.py
+new file mode 100644
+index 0000000..b2b70c2
+--- /dev/null
++++ b/tests/v1/multiprocess/test_hyrex_lookup_pipeline_standalone.py
+@@ -0,0 +1,129 @@
++"""CPU-only checks using actual adapter methods without importing GPU services."""
++import ast
++import logging
++import os
++from pathlib import Path
++from types import SimpleNamespace
++
++
++def main():
++    os.environ.pop('LMCACHE_HYREX_COMBINED_LOOKUP', None)
++    source = Path(__file__).resolve().parents[3] / 'lmcache/integration/vllm/vllm_multi_process_adapter.py'
++    tree = ast.parse(source.read_text())
++    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'LMCacheMPSchedulerAdapter')
++    names = {'maybe_submit_lookup_request', 'check_lookup_result', 'check_lookup_results',
++             '_free_inconsistent_lookup_locks', 'submit_lookup_batch'}
++    methods = [n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name in names]
++    for method in methods:
++        method.decorator_list = []
++    module = ast.Module(body=[ast.ImportFrom(module='__future__', names=[ast.alias(name='annotations')], level=0),
++                             ast.ClassDef(name='Adapter', bases=[], keywords=[], body=methods, decorator_list=[])], type_ignores=[])
++    events, answers = [], {}
++
++    def send(url, kind, args):
++        if kind in ('batch_lookup', 'batch_query'):
++            ids = args[0] if kind == 'batch_query' else [k.request_id for k in args[0]]
++            events.append(('send', kind, tuple(ids), url))
++            return SimpleNamespace(result=lambda timeout: (
++                [answers.get(('query', r, url), 1) for r in ids]
++                if kind == 'batch_query' else None))
++        request_id = args[0] if kind == 'query' else args[0].request_id
++        events.append(('send', kind, request_id, url))
++
++        def result(timeout):
++            events.append(('wait', kind, request_id, url))
++            value = answers.get((kind, request_id, url), 1)
++            if isinstance(value, Exception):
++                raise value
++            return value
++        return SimpleNamespace(result=result)
++
++    ns = {'os': os, 'logger': logging.getLogger(__name__), 'send_lmcache_request': send,
++          'RequestType': SimpleNamespace(LOOKUP_GROUPS='lookup', LOOKUP='lookup',
++                                        HYREX_LOOKUP_BATCH='batch_lookup', HYREX_QUERY_BATCH='batch_query',
++                                        QUERY_PREFETCH_STATUS='query',
++                                        FREE_LOOKUP_LOCKS_GROUPS='free', FREE_LOOKUP_LOCKS='free')}
++    exec(compile(ast.fix_missing_locations(module), str(source), 'exec'), ns)
++
++    def adapter(urls=('server',)):
++        a = ns['Adapter']()
++        a.is_healthy = True
++        a._server_urls = list(urls)
++        a.mq_clients = {u: u for u in urls}
++        a._pending_lookups = set()
++        for name in ('_lookup_chunk_sizes', '_lookup_params', '_lookup_groups',
++                     '_finished_lookup_results', '_per_server_hits'):
++            setattr(a, name, {})
++        a._health_events = {u: SimpleNamespace(clear=lambda: setattr(a, 'is_healthy', False)) for u in urls}
++        a._mq_timeout = 1
++        a.lmcache_tokens_per_chunk = 528
++        a.tp_size = 1
++        a._ensure_heartbeat_started = lambda: None
++
++        def key(*args, **kwargs):
++            obj = SimpleNamespace(**kwargs)
++            obj.no_worker_id_version = lambda: obj
++            return obj
++        a._create_key = key
++        return a
++
++    a = adapter()
++    waits = []
++    for request_id, chunk, group in [('state', 528, 1), ('full', 16, 0)]:
++        a.maybe_submit_lookup_request(request_id, list(range(831)), 'tenant', [group], chunk, waits)
++    assert len(events) == 2 and all(e[0] == 'send' for e in events)
++    assert not a._pending_lookups  # no premature hit publication
++    for finish in waits:
++        finish()
++    assert a._lookup_chunk_sizes == {'state': 528, 'full': 16}
++    assert a._lookup_groups == {'state': [1], 'full': [0]}
++    answers.update({('query', 'state', 'server'): 1, ('query', 'full', 'server'): 47})
++    events.clear()
++    assert a.check_lookup_results(['state', 'full']) == [528, 752]
++    assert [e[0] for e in events] == ['send', 'send', 'wait', 'wait']
++    events.clear()
++    assert a.check_lookup_results(['state', 'full']) == [528, 752]
++    assert events == []  # cached result must not consume server result again
++
++    a = adapter()
++    a.maybe_submit_lookup_request('pending', [1]*1056)
++    answers[('query', 'pending', 'server')] = None
++    assert a.check_lookup_results(['pending', 'missing']) == [None, 0]
++    answers[('query', 'pending', 'server')] = 2
++    assert a.check_lookup_results(['pending']) == [1056]
++
++    a = adapter(('a', 'b'))
++    a.maybe_submit_lookup_request('multi', [1]*1584, object_group_ids=[1])
++    answers.update({('query', 'multi', 'a'): 2, ('query', 'multi', 'b'): 3})
++    events.clear()
++    assert a.check_lookup_results(['multi']) == [1056]
++    assert any(e[1] == 'free' and e[3] == 'b' for e in events)
++
++    a = adapter()
++    answers[('lookup', 'timeout', 'server')] = TimeoutError()
++    waits = []
++    a.maybe_submit_lookup_request('timeout', [1]*528, deferred_waits=waits)
++    waits[0]()
++    assert not a.is_healthy and 'timeout' not in a._pending_lookups
++    assert a.check_lookup_results(['timeout']) == [0]
++    os.environ['LMCACHE_HYREX_COMBINED_LOOKUP'] = '1'
++    a = adapter()
++    waits, batch = [], []
++    events.clear()
++    for r, chunk in [('state', 528), ('full', 16)]:
++        a.maybe_submit_lookup_request(r, [1]*831, object_group_ids=[0], chunk_size=chunk,
++                                      deferred_waits=waits, batch_submissions=batch)
++    assert events == []
++    a.submit_lookup_batch(batch)
++    for finish in waits:
++        finish()
++    assert a.check_lookup_results(['state', 'full']) == [528, 752]
++    assert [e[1] for e in events] == ['batch_lookup', 'batch_query']
++    events.clear()
++    assert a.check_lookup_results(['state', 'full']) == [528, 752] and not events
++    os.environ.pop('LMCACHE_HYREX_COMBINED_LOOKUP')
++    print('PASS: pipelining, independent boundaries, cached/pending/missing results, multi-server locks, timeout')
++
++
++if __name__ == '__main__':
++    main()

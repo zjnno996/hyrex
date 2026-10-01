@@ -1,0 +1,10 @@
+{"length": 651, "repeat": 0, "cached_tokens": 0, "ttft_ms": 1030.08, "completion_tokens": 32}
+{"length": 651, "repeat": 1, "cached_tokens": 528, "ttft_ms": 152.44, "completion_tokens": 32}
+{"length": 1191, "repeat": 0, "cached_tokens": 0, "ttft_ms": 246.39, "completion_tokens": 32}
+{"length": 1191, "repeat": 1, "cached_tokens": 1056, "ttft_ms": 139.53, "completion_tokens": 32}
+{"length": 1708, "repeat": 0, "cached_tokens": 0, "ttft_ms": 340.27, "completion_tokens": 32}
+{"length": 1708, "repeat": 1, "cached_tokens": 1584, "ttft_ms": 175.59, "completion_tokens": 32}
+{"length": 1922, "repeat": 0, "cached_tokens": 0, "ttft_ms": 349.7, "completion_tokens": 32}
+{"length": 1922, "repeat": 1, "cached_tokens": 1584, "ttft_ms": 144.76, "completion_tokens": 32}
+{"phase": "unrelated_shape_pair", "length": 1054, "cached_tokens": 0, "completion_tokens": 32, "ttft_ms": 204.28}
+{"phase": "unrelated_shape_pair", "length": 1191, "cached_tokens": 528, "completion_tokens": 32, "ttft_ms": 198.26}

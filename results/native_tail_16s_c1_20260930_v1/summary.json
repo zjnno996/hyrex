@@ -1,0 +1,18 @@
+{
+  "baseline": {
+    "requests": 120,
+    "continuations": 104,
+    "mean_ttft_ms": 159.3814423076923,
+    "median_ttft_ms": 143.675,
+    "mean_cached_tokens": 842.7692307692307,
+    "mean_replay_tokens": 391.49038461538464
+  },
+  "tail": {
+    "requests": 120,
+    "continuations": 104,
+    "mean_ttft_ms": 167.8446153846154,
+    "median_ttft_ms": 165.64499999999998,
+    "mean_cached_tokens": 1075.076923076923,
+    "mean_replay_tokens": 159.18269230769232
+  }
+}

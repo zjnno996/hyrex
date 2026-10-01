@@ -1,0 +1,14 @@
+{
+  "trees": {
+    "/root/exp-vllm-pristine-3way": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+    "/root/exp-lmcache-pristine-3way": "140819c9d57a975dbc5678a6459a218e544cb58b",
+    "/root/exp-vllm-replacement-3way": "3c6fff40381609baf671587dc404fa4963f37d91",
+    "/root/exp-lmcache-replacement-3way": "c12fb1773b8513ddfe721408a1a13f4482e7e542"
+  },
+  "trace_sha256": "a6ef54ee3b752c49e4b438a888056e8911e515dd4a1d77f5d770234054d82a2f",
+  "scope": "isolated real seed/resume pair; CPU cleared between repetitions; not continuous 4x10",
+  "selection": "1054 -> 1191 tokens; near-max alignment gap; NOT representative average",
+  "replacement": "replace S528 with exact S1040 in seed; capture S1184 in resume; old tail retained until pair clear",
+  "output": "seed 1 token, resume 32 tokens; compare complete greedy continuation",
+  "metric": "client HTTP to first nonempty SSE text; seed overhead included separately"
+}

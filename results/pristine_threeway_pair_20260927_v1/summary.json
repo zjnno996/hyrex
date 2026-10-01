@@ -1,0 +1,23 @@
+{
+  "baseline": {
+    "seed_mean_ttft_ms": 399.71000000000004,
+    "resume_mean_ttft_ms": 2643.6800000000003,
+    "all_mean_ttft_ms": 1521.6950000000002,
+    "all_generated_text_equal_baseline": true,
+    "resume_ttft_reduction_pct": 0.0
+  },
+  "deep": {
+    "seed_mean_ttft_ms": 344.99,
+    "resume_mean_ttft_ms": 336.46,
+    "all_mean_ttft_ms": 340.725,
+    "all_generated_text_equal_baseline": true,
+    "resume_ttft_reduction_pct": 87.27304363614357
+  },
+  "replacement": {
+    "seed_mean_ttft_ms": 443.31,
+    "resume_mean_ttft_ms": 347.95666666666665,
+    "all_mean_ttft_ms": 395.6333333333333,
+    "all_generated_text_equal_baseline": true,
+    "resume_ttft_reduction_pct": 86.83817002562085
+  }
+}

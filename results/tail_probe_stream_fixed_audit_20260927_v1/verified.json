@@ -1,0 +1,21 @@
+{
+  "repetitions": 3,
+  "verified_gpu_resets": 5,
+  "model_bytes_match": true,
+  "cold_reference_sampled_output_match": true,
+  "comparisons": [
+    {
+      "state_tensors": 48,
+      "full_layer_pages": 520
+    },
+    {
+      "state_tensors": 48,
+      "full_layer_pages": 520
+    },
+    {
+      "state_tensors": 48,
+      "full_layer_pages": 520
+    }
+  ],
+  "performance_measurement": false
+}

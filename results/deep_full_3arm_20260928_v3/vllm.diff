@@ -1,0 +1,135 @@
+diff --git a/vllm/model_executor/layers/rotary_embedding/mrope.py b/vllm/model_executor/layers/rotary_embedding/mrope.py
+index 3c946dd13..628f7ad6d 100644
+--- a/vllm/model_executor/layers/rotary_embedding/mrope.py
++++ b/vllm/model_executor/layers/rotary_embedding/mrope.py
+@@ -11,7 +11,7 @@ from .base import RotaryEmbeddingBase
+ from .yarn_scaling_rope import YaRNScalingRotaryEmbedding, yarn_get_mscale
+ 
+ 
+-@triton.jit
++@triton.jit(do_not_specialize=["k_start"])
+ def _triton_mrope_forward(
+     q_ptr,
+     k_ptr,
+@@ -29,6 +29,7 @@ def _triton_mrope_forward(
+     mrope_section_h: tl.constexpr,
+     mrope_section_w: tl.constexpr,
+     is_interleaved: tl.constexpr,
++    k_start=0,
+ ):
+     # Adapted from
+     # https://github.com/linkedin/Liger-Kernel/blob/main/src/liger_kernel/ops/qwen2vl_mrope.py
+@@ -38,7 +39,7 @@ def _triton_mrope_forward(
+     pid = tl.program_id(0)
+     # locate start address
+     q_ptr = q_ptr + pid * (n_qh * hd)
+-    k_ptr = k_ptr + pid * (n_kh * hd)
++    k_ptr = k_ptr + (pid - k_start) * (n_kh * hd)
+ 
+     # ####################################################################
+     # get the cos(mθ_{i...d/2}) and sin(mθ_{i...d/2}) for token position
+@@ -94,7 +95,7 @@ def _triton_mrope_forward(
+     )
+     first_k_mask = (tl.arange(0, pad_n_kh)[:, None] < n_kh) & (
+         tl.arange(0, pad_hd // 2)[None, :] < rd // 2
+-    )
++    ) & (pid >= k_start)
+ 
+     q_tile_1 = tl.load(q_ptr + first_half_q_offsets, mask=first_q_mask, other=0).to(
+         sin_row.dtype
+@@ -139,6 +140,7 @@ def triton_mrope(
+     head_size: int,
+     rotary_dim: int,
+     mrope_interleaved: bool,
++    k_start: int = 0,
+ ) -> tuple[torch.Tensor, torch.Tensor]:
+     """Qwen2VL mrope kernel.
+ 
+@@ -153,6 +155,7 @@ def triton_mrope(
+         head_size: int
+     """
+     n_row, n_q_head_head_dim = q.shape
++    assert 0 <= k_start <= n_row and k.shape[0] == n_row - k_start
+     n_q_head = n_q_head_head_dim // head_size
+     n_kv_head = k.shape[1] // head_size
+     pad_hd = triton.next_power_of_2(head_size)
+@@ -183,6 +186,7 @@ def triton_mrope(
+         mrope_section[1],
+         mrope_section[2],
+         mrope_interleaved,
++        k_start,
+     )
+     return q, k
+ 
+diff --git a/vllm/model_executor/models/qwen3_next.py b/vllm/model_executor/models/qwen3_next.py
+index 8684c41cd..1143e686f 100644
+--- a/vllm/model_executor/models/qwen3_next.py
++++ b/vllm/model_executor/models/qwen3_next.py
+@@ -50,6 +50,7 @@ from vllm.model_executor.layers.mamba.mamba_utils import (
+ )
+ from vllm.model_executor.layers.quantization import QuantizationConfig
+ from vllm.model_executor.layers.rotary_embedding import get_rope
++from vllm.model_executor.layers.rotary_embedding.mrope import triton_mrope
+ from vllm.model_executor.layers.vocab_parallel_embedding import (
+     ParallelLMHead,
+     VocabParallelEmbedding,
+@@ -257,6 +258,7 @@ class Qwen3NextAttention(nn.Module):
+             and tp_size == 1
+         )
+         self._hyrex_q_only_no_cat = os.getenv("VLLM_HYREX_Q_ONLY_NO_CAT", "1") == "1"
++        self._hyrex_compact_k = os.getenv("VLLM_HYREX_COMPACT_K") == "1"
+ 
+         self.o_proj = RowParallelLinear(
+             self.total_num_heads * self.head_dim,
+@@ -303,6 +305,11 @@ class Qwen3NextAttention(nn.Module):
+             if self._hyrex_q_only_replay
+             else ()
+         )
++        compact_k = (
++            self._hyrex_compact_k and len(replay_spans) == 1
++            and replay_spans[0][0] == 0 and hidden_states.is_cuda
++            and positions.ndim == 2 and hasattr(self.rotary_emb, "mrope_section")
++        )
+         if replay_spans:
+             logger.info_once("HyRex Q-only Full-Attention replay is active")
+             # The paged cache already holds K/V for these replay tokens. The
+@@ -316,7 +323,7 @@ class Qwen3NextAttention(nn.Module):
+                 weight[:q_gate_size],
+                 bias[:q_gate_size] if bias is not None else None,
+             )
+-            kv = torch.zeros(
++            kv = (torch.empty if compact_k else torch.zeros)(
+                 (*hidden_states.shape[:-1], 2 * self.kv_size),
+                 device=hidden_states.device,
+                 dtype=q_gate.dtype,
+@@ -363,11 +370,25 @@ class Qwen3NextAttention(nn.Module):
+         q = self.q_norm(q.view(-1, self.num_heads, self.head_dim)).view(
+             -1, self.num_heads * self.head_dim
+         )
+-        k = self.k_norm(k.view(-1, self.num_kv_heads, self.head_dim)).view(
+-            -1, self.num_kv_heads * self.head_dim
+-        )
+-
+-        q, k = self.rotary_emb(positions, q, k)
++        if compact_k:
++            logger.info_once("HyRex compact K normalization and RoPE replay is active")
++            # Only masked-write replay tokens may contain uninitialized K/V.
++            # Attention reads their existing paged cache, never these tensors.
++            start = replay_spans[0][1]
++            new_k = self.k_norm(k[start:].reshape(
++                -1, self.num_kv_heads, self.head_dim)).reshape(-1, self.kv_size)
++            rope = self.rotary_emb
++            cache = rope._match_cos_sin_cache_dtype(q)
++            cos, sin = cache[positions].chunk(2, dim=-1)
++            q, new_k = triton_mrope(
++                q, new_k, cos, sin, rope.mrope_section, rope.head_size,
++                rope.rotary_dim, rope.mrope_interleaved, k_start=start)
++            k[start:].copy_(new_k)
++        else:
++            k = self.k_norm(k.view(-1, self.num_kv_heads, self.head_dim)).view(
++                -1, self.num_kv_heads * self.head_dim
++            )
++            q, k = self.rotary_emb(positions, q, k)
+ 
+         attn_output = self.attn(q, k, v)
+ 

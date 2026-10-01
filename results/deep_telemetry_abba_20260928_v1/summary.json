@@ -1,0 +1,46 @@
+{
+  "1_baseline": {
+    "continuation_ttft_ms": 160.53944444444446,
+    "first_turn_ttft_ms": 205.815,
+    "active_samples": 47,
+    "active_sm_mhz_mean": 2537.872340425532,
+    "active_pcie_gens": [
+      4
+    ],
+    "active_pcie_rx_kbs_max": 6216064,
+    "correctness_and_resets_passed": true
+  },
+  "2_optimized": {
+    "continuation_ttft_ms": 164.06055555555557,
+    "first_turn_ttft_ms": 204.05,
+    "active_samples": 47,
+    "active_sm_mhz_mean": 2533.0851063829787,
+    "active_pcie_gens": [
+      4
+    ],
+    "active_pcie_rx_kbs_max": 5316064,
+    "correctness_and_resets_passed": true
+  },
+  "3_optimized": {
+    "continuation_ttft_ms": 161.6052777777778,
+    "first_turn_ttft_ms": 198.97,
+    "active_samples": 47,
+    "active_sm_mhz_mean": 2527.978723404255,
+    "active_pcie_gens": [
+      4
+    ],
+    "active_pcie_rx_kbs_max": 5012548,
+    "correctness_and_resets_passed": true
+  },
+  "4_baseline": {
+    "continuation_ttft_ms": 160.5197222222222,
+    "first_turn_ttft_ms": 197.9975,
+    "active_samples": 48,
+    "active_sm_mhz_mean": 2537.5,
+    "active_pcie_gens": [
+      4
+    ],
+    "active_pcie_rx_kbs_max": 9770898,
+    "correctness_and_resets_passed": true
+  }
+}

@@ -1,0 +1,7 @@
+tqdm
+numpy
+torch>=1.12
+pulp
+attrs
+-e ./transformers
+accelerate

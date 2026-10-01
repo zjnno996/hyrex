@@ -1,0 +1,81 @@
+defaults:
+  - _self_
+
+run_name: full
+output_dir: outputs/${data.name}/${run_name}
+overwrite: False
+log_level: WARNING   # DEBUG, INFO, WARNING, ERROR
+
+device: mps  # cpu, cuda, mps
+dtype: float16  # enable 2080's tensor cores
+seed: 42
+
+hydra:
+  run:
+    dir: ${output_dir}
+  output_subdir: hydra  # saves hydra config into ${output_dir}/hydra/
+
+strategy_defaults:
+  save_last: False
+  laplace_alpha: 0
+  linestyle: "-"
+  linewidth: 2
+  adaptive_backtrack: False
+
+strategies:
+  no_cache: {}   # do not delete this strat - code assumes that it is used
+
+# Qwen3.5-0.8B dimensions
+model:
+  name: "Qwen3.5-0.8B"
+  tokenizer: "Qwen/Qwen3.5-0.8B"
+  gdn_layers: 3
+  ga_layers: 1
+  # HF-compatible fields (for checkpoint_cache.py, single layer group)
+  vocab_size: 512        # for original qwen vocab, most logits take too much memory
+  hidden_size: 1024         # = d
+  intermediate_size: 3584   # = d_ff
+  num_hidden_layers: 4      # 1 group = 3 GDN + 1 attn
+  num_attention_heads: 8    # = a_nq
+  num_key_value_heads: 2    # = a_nkv
+  head_dim: 256             # = d_a
+  linear_conv_kernel_dim: 4
+  linear_key_head_dim: 128  # = d_h
+  linear_value_head_dim: 128 # = d_h
+  linear_num_key_heads: 16  # = gdn_nqk
+  linear_num_value_heads: 16 # = gdn_nv
+  max_position_embeddings: 262144
+  rope_theta: 10000000.0
+  r: 768
+
+test:
+  seq_len: 100
+  tolerance: 1.0e-3
+
+benchmark_baselines:
+  seq_lens: [1023, 1024, 1536, 2047, 2048, 3072, 4095, 4096, 6144, 8191, 8192, 16383, 16384, 20000]
+  n_runs: 3
+
+cache_manager:
+  _target_: spase_cache.utils.FixedSizeCache
+  max_cached_sequences: 20
+  # _target_: spase_cache.utils.PrefixCache
+  # kv_budget_gb: 5.0
+  # gdn_budget_gb: 5.0
+  # For FixedSizeCache: _target_: spase_cache.utils.FixedSizeCache, max_cached_sequences: 100
+
+benchmark_e2e:
+  warmup_seqs: 1000
+  progress: true
+  dry_run: false
+
+overlap_distribution:
+  batch_size: 5000
+
+prepare_data:
+  _target_: prepare_data.prepare_all  # or prepare_data.tokenize, prepare_data.compute_overlap
+  tokenizer_chunk_size: 2048
+
+plot_results:
+  _target_: plot_results.plot_all  # or plot_results.plot_single, plot_results.plot_tradeoff, plot_results.plot_e2e, plot_results.plot_overlap
+  reference_lines: False

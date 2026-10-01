@@ -1,0 +1,4 @@
+{
+  "state": "aborted_invalid_shm",
+  "reason": "/dev/shm is 64 MiB; LMCache disabled SHM and fell back to pickle, so TTFT would not be publication-grade"
+}

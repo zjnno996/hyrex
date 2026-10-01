@@ -1,0 +1,28 @@
+{
+  "sessions": 32,
+  "requests": 96,
+  "all_hits_chunk_aligned": true,
+  "by_turn": {
+    "0": {
+      "requests": 32,
+      "cache_hit_requests": 0,
+      "eligible_aligned_requests": 0,
+      "missing_aligned_requests": 0,
+      "median_elapsed_ms": 621.19
+    },
+    "1": {
+      "requests": 32,
+      "cache_hit_requests": 6,
+      "eligible_aligned_requests": 32,
+      "missing_aligned_requests": 26,
+      "median_elapsed_ms": 718.45
+    },
+    "2": {
+      "requests": 32,
+      "cache_hit_requests": 19,
+      "eligible_aligned_requests": 32,
+      "missing_aligned_requests": 13,
+      "median_elapsed_ms": 740.18
+    }
+  }
+}

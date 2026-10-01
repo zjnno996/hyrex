@@ -1,0 +1,6 @@
+{
+  "state": "aborted_during_model_loading",
+  "measured_profile_requests": 0,
+  "reason": "Engine remained at first model shard, D state with blk_mq_get_tag wait; system I/O PSI full avg10 about 73%, some about 81%. No inference profile acquired. Sent SIGINT only to the owned diagnostic harness so its finally block cleans up services.",
+  "unprofiled_benchmark": "Completed independently: 160 requests; see RESULTS.md and summary.json."
+}

@@ -1,0 +1,8 @@
+{
+  "method": "Read /proc/PID/numa_maps; largest anonymous mapping, kernelpagesize_kB=4. Mapping size is consistent with the 2-GiB cache pool but not correlated with an allocator pointer. Not a continuous trace or proof of causality.",
+  "1_baseline": {"lmcache_pid": 1488817, "mapping": "799bac738000", "N0_pages": 107172, "N1_pages": 417369, "cpu_affinity": "0-11,24-35", "memory_nodes_allowed": "0-1"},
+  "2_optimized": {"lmcache_pid": 1489978, "mapping": "73fb55d38000", "N0_pages": 524541, "N1_pages": 0, "cpu_affinity": "0-11,24-35", "memory_nodes_allowed": "0-1"},
+  "3_optimized": {"lmcache_pid": 1491109, "mapping": "78bdb2338000", "N0_pages": 524541, "N1_pages": 0, "cpu_affinity": "0-11,24-35", "memory_nodes_allowed": "0-1"},
+  "4_baseline": {"lmcache_pid": 1492224, "mapping": "71a2ce838000", "N0_pages": 524289, "N1_pages": 0, "cpu_affinity": "0-11,24-35", "memory_nodes_allowed": "0-1"},
+  "memory_binding_probe": "Isolated child set_mempolicy(MPOL_BIND, node0) failed with EPERM; strict memory binding not applied."
+}

@@ -1,0 +1,362 @@
+{
+  "design": {
+    "coarse_boundary": 1056,
+    "appended_tokens": 128,
+    "gaps": [
+      0,
+      64,
+      128,
+      256,
+      384,
+      512
+    ],
+    "note": "Deep reports a fine KV hit but replays from the coarse state; actual replay is not prompt_tokens-cached_tokens."
+  },
+  "correctness": {
+    "native": {
+      "continuations": 30,
+      "first_text_mismatches": 0,
+      "prompt_mismatches": 0
+    },
+    "aligned": {
+      "continuations": 30,
+      "first_text_mismatches": 0,
+      "prompt_mismatches": 0
+    },
+    "deep": {
+      "continuations": 30,
+      "first_text_mismatches": 0,
+      "prompt_mismatches": 0
+    },
+    "exact_recovery_only": {
+      "continuations": 30,
+      "first_text_mismatches": 0,
+      "prompt_mismatches": 0
+    },
+    "exact_steady": {
+      "continuations": 30,
+      "first_text_mismatches": 0,
+      "prompt_mismatches": 0
+    }
+  },
+  "rows": [
+    {
+      "gap_tokens": 0,
+      "paths": {
+        "native": {
+          "samples": 5,
+          "mean_ttft_ms": 134.024,
+          "median_ttft_ms": 132.14,
+          "stdev_ttft_ms": 3.625814391278185,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 128
+        },
+        "aligned": {
+          "samples": 5,
+          "mean_ttft_ms": 140.34,
+          "median_ttft_ms": 140.73,
+          "stdev_ttft_ms": 3.9566083960887557,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 6.3160000000000025
+        },
+        "deep": {
+          "samples": 5,
+          "mean_ttft_ms": 139.04399999999998,
+          "median_ttft_ms": 141.13,
+          "stdev_ttft_ms": 7.349583661677712,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 5.019999999999982,
+          "delta_vs_aligned_ms": -1.2960000000000207
+        },
+        "exact_recovery_only": {
+          "samples": 5,
+          "mean_ttft_ms": 193.978,
+          "median_ttft_ms": 161.71,
+          "stdev_ttft_ms": 72.47256494701979,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 59.95400000000001,
+          "delta_vs_aligned_ms": 53.638000000000005
+        },
+        "exact_steady": {
+          "samples": 5,
+          "mean_ttft_ms": 154.582,
+          "median_ttft_ms": 157.29,
+          "stdev_ttft_ms": 12.703403874552677,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 20.557999999999993,
+          "delta_vs_aligned_ms": 14.24199999999999,
+          "checkpoint_maintenance_tax_ms": -39.396000000000015
+        }
+      }
+    },
+    {
+      "gap_tokens": 64,
+      "paths": {
+        "native": {
+          "samples": 5,
+          "mean_ttft_ms": 135.84,
+          "median_ttft_ms": 135.37,
+          "stdev_ttft_ms": 2.4426829511829817,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 192
+        },
+        "aligned": {
+          "samples": 5,
+          "mean_ttft_ms": 145.63,
+          "median_ttft_ms": 144.64,
+          "stdev_ttft_ms": 2.5974795475614414,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 192,
+          "delta_vs_native_ms": 9.789999999999992
+        },
+        "deep": {
+          "samples": 5,
+          "mean_ttft_ms": 144.356,
+          "median_ttft_ms": 145.77,
+          "stdev_ttft_ms": 5.410035120033876,
+          "mean_reported_hit_tokens": 1120,
+          "actual_full_model_replay_tokens": 192,
+          "delta_vs_native_ms": 8.515999999999991,
+          "delta_vs_aligned_ms": -1.274000000000001
+        },
+        "exact_recovery_only": {
+          "samples": 5,
+          "mean_ttft_ms": 155.33599999999998,
+          "median_ttft_ms": 158.04,
+          "stdev_ttft_ms": 5.760323775622336,
+          "mean_reported_hit_tokens": 1120,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 19.49599999999998,
+          "delta_vs_aligned_ms": 9.705999999999989
+        },
+        "exact_steady": {
+          "samples": 5,
+          "mean_ttft_ms": 160.022,
+          "median_ttft_ms": 157.73,
+          "stdev_ttft_ms": 4.603207577331265,
+          "mean_reported_hit_tokens": 1120,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 24.181999999999988,
+          "delta_vs_aligned_ms": 14.391999999999996,
+          "checkpoint_maintenance_tax_ms": 4.686000000000007
+        }
+      }
+    },
+    {
+      "gap_tokens": 128,
+      "paths": {
+        "native": {
+          "samples": 5,
+          "mean_ttft_ms": 131.31,
+          "median_ttft_ms": 134.7,
+          "stdev_ttft_ms": 5.364513025429244,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 256
+        },
+        "aligned": {
+          "samples": 5,
+          "mean_ttft_ms": 143.086,
+          "median_ttft_ms": 144.31,
+          "stdev_ttft_ms": 5.313090437777244,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 256,
+          "delta_vs_native_ms": 11.77600000000001
+        },
+        "deep": {
+          "samples": 5,
+          "mean_ttft_ms": 143.494,
+          "median_ttft_ms": 143.73,
+          "stdev_ttft_ms": 5.424161686380671,
+          "mean_reported_hit_tokens": 1184,
+          "actual_full_model_replay_tokens": 256,
+          "delta_vs_native_ms": 12.183999999999997,
+          "delta_vs_aligned_ms": 0.40799999999998704
+        },
+        "exact_recovery_only": {
+          "samples": 5,
+          "mean_ttft_ms": 153.242,
+          "median_ttft_ms": 150.43,
+          "stdev_ttft_ms": 8.52414042587286,
+          "mean_reported_hit_tokens": 1184,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 21.931999999999988,
+          "delta_vs_aligned_ms": 10.155999999999977
+        },
+        "exact_steady": {
+          "samples": 5,
+          "mean_ttft_ms": 150.484,
+          "median_ttft_ms": 157.48,
+          "stdev_ttft_ms": 16.78049850272631,
+          "mean_reported_hit_tokens": 1184,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 19.174000000000007,
+          "delta_vs_aligned_ms": 7.397999999999996,
+          "checkpoint_maintenance_tax_ms": -2.7579999999999814
+        }
+      }
+    },
+    {
+      "gap_tokens": 256,
+      "paths": {
+        "native": {
+          "samples": 5,
+          "mean_ttft_ms": 136.43,
+          "median_ttft_ms": 136.29,
+          "stdev_ttft_ms": 3.237583975744877,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 384
+        },
+        "aligned": {
+          "samples": 5,
+          "mean_ttft_ms": 140.684,
+          "median_ttft_ms": 143.84,
+          "stdev_ttft_ms": 10.318182010412487,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 384,
+          "delta_vs_native_ms": 4.253999999999991
+        },
+        "deep": {
+          "samples": 5,
+          "mean_ttft_ms": 147.672,
+          "median_ttft_ms": 148.23,
+          "stdev_ttft_ms": 6.181295980617657,
+          "mean_reported_hit_tokens": 1312,
+          "actual_full_model_replay_tokens": 384,
+          "delta_vs_native_ms": 11.24199999999999,
+          "delta_vs_aligned_ms": 6.9879999999999995
+        },
+        "exact_recovery_only": {
+          "samples": 5,
+          "mean_ttft_ms": 159.546,
+          "median_ttft_ms": 159.79,
+          "stdev_ttft_ms": 4.261646395467368,
+          "mean_reported_hit_tokens": 1312,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 23.115999999999985,
+          "delta_vs_aligned_ms": 18.861999999999995
+        },
+        "exact_steady": {
+          "samples": 5,
+          "mean_ttft_ms": 150.696,
+          "median_ttft_ms": 156.62,
+          "stdev_ttft_ms": 15.561456551364339,
+          "mean_reported_hit_tokens": 1312,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 14.265999999999991,
+          "delta_vs_aligned_ms": 10.012,
+          "checkpoint_maintenance_tax_ms": -8.849999999999994
+        }
+      }
+    },
+    {
+      "gap_tokens": 384,
+      "paths": {
+        "native": {
+          "samples": 5,
+          "mean_ttft_ms": 134.498,
+          "median_ttft_ms": 137.0,
+          "stdev_ttft_ms": 6.553660809044056,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 512
+        },
+        "aligned": {
+          "samples": 5,
+          "mean_ttft_ms": 142.518,
+          "median_ttft_ms": 143.61,
+          "stdev_ttft_ms": 6.052757222952201,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 512,
+          "delta_vs_native_ms": 8.02000000000001
+        },
+        "deep": {
+          "samples": 5,
+          "mean_ttft_ms": 141.84799999999998,
+          "median_ttft_ms": 146.98,
+          "stdev_ttft_ms": 10.687023439667378,
+          "mean_reported_hit_tokens": 1440,
+          "actual_full_model_replay_tokens": 512,
+          "delta_vs_native_ms": 7.349999999999994,
+          "delta_vs_aligned_ms": -0.6700000000000159
+        },
+        "exact_recovery_only": {
+          "samples": 5,
+          "mean_ttft_ms": 146.418,
+          "median_ttft_ms": 154.75,
+          "stdev_ttft_ms": 23.704048599342688,
+          "mean_reported_hit_tokens": 1440,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 11.920000000000016,
+          "delta_vs_aligned_ms": 3.9000000000000057
+        },
+        "exact_steady": {
+          "samples": 5,
+          "mean_ttft_ms": 148.388,
+          "median_ttft_ms": 155.2,
+          "stdev_ttft_ms": 15.414587895886156,
+          "mean_reported_hit_tokens": 1440,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": 13.890000000000015,
+          "delta_vs_aligned_ms": 5.8700000000000045,
+          "checkpoint_maintenance_tax_ms": 1.9699999999999989
+        }
+      }
+    },
+    {
+      "gap_tokens": 512,
+      "paths": {
+        "native": {
+          "samples": 5,
+          "mean_ttft_ms": 201.45,
+          "median_ttft_ms": 198.62,
+          "stdev_ttft_ms": 7.90099993671687,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 640
+        },
+        "aligned": {
+          "samples": 5,
+          "mean_ttft_ms": 198.78,
+          "median_ttft_ms": 199.57,
+          "stdev_ttft_ms": 9.736706321955076,
+          "mean_reported_hit_tokens": 1056,
+          "actual_full_model_replay_tokens": 640,
+          "delta_vs_native_ms": -2.6699999999999875
+        },
+        "deep": {
+          "samples": 5,
+          "mean_ttft_ms": 197.47,
+          "median_ttft_ms": 196.85,
+          "stdev_ttft_ms": 5.504234733366671,
+          "mean_reported_hit_tokens": 1568,
+          "actual_full_model_replay_tokens": 640,
+          "delta_vs_native_ms": -3.9799999999999898,
+          "delta_vs_aligned_ms": -1.3100000000000023
+        },
+        "exact_recovery_only": {
+          "samples": 5,
+          "mean_ttft_ms": 156.34,
+          "median_ttft_ms": 162.43,
+          "stdev_ttft_ms": 11.699542726106865,
+          "mean_reported_hit_tokens": 1568,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": -45.109999999999985,
+          "delta_vs_aligned_ms": -42.44
+        },
+        "exact_steady": {
+          "samples": 5,
+          "mean_ttft_ms": 166.336,
+          "median_ttft_ms": 166.35,
+          "stdev_ttft_ms": 1.7778442001480306,
+          "mean_reported_hit_tokens": 1568,
+          "actual_full_model_replay_tokens": 128,
+          "delta_vs_native_ms": -35.113999999999976,
+          "delta_vs_aligned_ms": -32.44399999999999,
+          "checkpoint_maintenance_tax_ms": 9.99600000000001
+        }
+      }
+    }
+  ]
+}

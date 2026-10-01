@@ -1,0 +1,34 @@
+{
+  "scope": "one selected real pair, not workload average",
+  "repetitions": 5,
+  "generated_text_mismatches": [],
+  "saved_forward_tokens": 512,
+  "extra_checkpoint_MiB": 49.5,
+  "shallow": {
+    "seed_ttft_mean_ms": 222.222,
+    "resume_ttft_mean_ms": 243.952,
+    "pair_elapsed_mean_ms": 1593.152,
+    "resume_ttft_samples_ms": [
+      245.19,
+      224.77,
+      254.02,
+      247.93,
+      247.85
+    ]
+  },
+  "tail": {
+    "seed_ttft_mean_ms": 327.176,
+    "resume_ttft_mean_ms": 190.076,
+    "pair_elapsed_mean_ms": 1631.204,
+    "resume_ttft_samples_ms": [
+      178.57,
+      190.35,
+      195.96,
+      191.98,
+      193.52
+    ]
+  },
+  "resume_ttft_saving_ms": 53.876000000000005,
+  "seed_ttft_cost_ms": 104.95399999999998,
+  "sampled_output_checks_passed": true
+}

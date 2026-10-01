@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "checks": {
+    "1_baseline": {
+      "requests": 40,
+      "warmups": 10,
+      "successful_inter_request_resets": 39,
+      "engine_reset_acknowledgements": 49,
+      "first_token_matches": 40
+    },
+    "3_optimized": {
+      "requests": 40,
+      "warmups": 10,
+      "successful_inter_request_resets": 39,
+      "engine_reset_acknowledgements": 49,
+      "first_token_matches": 40
+    },
+    "4_optimized": {
+      "requests": 40,
+      "warmups": 10,
+      "successful_inter_request_resets": 39,
+      "engine_reset_acknowledgements": 49,
+      "first_token_matches": 40
+    },
+    "6_baseline": {
+      "requests": 40,
+      "warmups": 10,
+      "successful_inter_request_resets": 39,
+      "engine_reset_acknowledgements": 49,
+      "first_token_matches": 40
+    }
+  },
+  "limitations": [
+    "GPU prefix-cache clear, not device reset",
+    "Baseline forward-token counts derived from prompt minus hit",
+    "Single-request sequential replay; not concurrency or full-output proof",
+    "Native prefill budget 528, experimental 2048"
+  ]
+}

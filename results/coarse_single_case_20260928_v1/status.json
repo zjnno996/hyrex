@@ -1,0 +1,1 @@
+{"state":"paused_by_user","arm":"1_optimized","processes_stopped":true,"inference_requests_completed":0,"reason":"User requested pause during I/O-blocked startup. Processes terminated; code, configuration and logs preserved. Resuming requires a new service startup and warmup."}

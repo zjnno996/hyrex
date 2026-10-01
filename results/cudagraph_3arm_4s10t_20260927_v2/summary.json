@@ -1,0 +1,11 @@
+{
+  "baseline": {
+    "returncode": 1
+  },
+  "deep": {
+    "returncode": 1
+  },
+  "tail": {
+    "returncode": 1
+  }
+}

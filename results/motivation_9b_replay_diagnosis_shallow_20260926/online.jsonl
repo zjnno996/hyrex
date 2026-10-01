@@ -1,0 +1,8 @@
+{"arrival_index": 0, "session_id": "Ud3L2sd_124", "turn_index": 0, "prompt_tokens": 651, "cached_tokens": 0, "completion_tokens": 1, "elapsed_ms": 6549.54, "ttft_ms": 6549.33, "first_text": " "}
+{"arrival_index": 10, "session_id": "Pr8nMeM_0", "turn_index": 0, "prompt_tokens": 756, "cached_tokens": 0, "completion_tokens": 1, "elapsed_ms": 178.06, "ttft_ms": 177.87, "first_text": " "}
+{"arrival_index": 20, "session_id": "WRAImOg_0", "turn_index": 0, "prompt_tokens": 872, "cached_tokens": 0, "completion_tokens": 1, "elapsed_ms": 201.86, "ttft_ms": 201.6, "first_text": " "}
+{"arrival_index": 30, "session_id": "WnjND3T_0", "turn_index": 0, "prompt_tokens": 849, "cached_tokens": 0, "completion_tokens": 1, "elapsed_ms": 211.74, "ttft_ms": 211.57, "first_text": " "}
+{"arrival_index": 1, "session_id": "Ud3L2sd_124", "turn_index": 1, "prompt_tokens": 732, "cached_tokens": 0, "completion_tokens": 1, "elapsed_ms": 174.3, "ttft_ms": 174.09, "first_text": " "}
+{"arrival_index": 11, "session_id": "Pr8nMeM_0", "turn_index": 1, "prompt_tokens": 831, "cached_tokens": 0, "completion_tokens": 1, "elapsed_ms": 198.71, "ttft_ms": 198.54, "first_text": "\n\n"}
+{"arrival_index": 21, "session_id": "WRAImOg_0", "turn_index": 1, "prompt_tokens": 903, "cached_tokens": 0, "completion_tokens": 1, "elapsed_ms": 192.13, "ttft_ms": 191.95, "first_text": "\n\n"}
+{"arrival_index": 31, "session_id": "WnjND3T_0", "turn_index": 1, "prompt_tokens": 927, "cached_tokens": 0, "completion_tokens": 1, "elapsed_ms": 186.81, "ttft_ms": 186.63, "first_text": " I"}

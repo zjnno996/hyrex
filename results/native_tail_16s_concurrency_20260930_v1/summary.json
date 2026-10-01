@@ -1,0 +1,102 @@
+{
+  "baseline": {
+    "4": {
+      "continuations": 104,
+      "mean_ttft_ms": 323.07057692307694,
+      "median_ttft_ms": 313.33000000000004,
+      "p95_ttft_ms": 486.01,
+      "mean_replay_tokens": 391.49038461538464,
+      "recovery_requests_per_second_excluding_resets": 9.677245260476083
+    },
+    "8": {
+      "continuations": 104,
+      "mean_ttft_ms": 472.4051923076923,
+      "median_ttft_ms": 472.405,
+      "p95_ttft_ms": 733.3,
+      "mean_replay_tokens": 391.49038461538464,
+      "recovery_requests_per_second_excluding_resets": 11.696011660023931
+    },
+    "16": {
+      "continuations": 104,
+      "mean_ttft_ms": 738.4242307692308,
+      "median_ttft_ms": 720.1700000000001,
+      "p95_ttft_ms": 1305.23,
+      "mean_replay_tokens": 401.6442307692308,
+      "recovery_requests_per_second_excluding_resets": 12.455522407365047
+    },
+    "diagnostics": [
+      {
+        "concurrency": 4,
+        "measured_wall_ms": 75540.37,
+        "formal_jit_warnings": 1
+      },
+      {
+        "concurrency": 8,
+        "measured_wall_ms": 43491.37,
+        "formal_jit_warnings": 0
+      },
+      {
+        "concurrency": 16,
+        "measured_wall_ms": 28662.3,
+        "formal_jit_warnings": 0
+      }
+    ]
+  },
+  "tail": {
+    "4": {
+      "continuations": 104,
+      "mean_ttft_ms": 358.2703846153846,
+      "median_ttft_ms": 376.83500000000004,
+      "p95_ttft_ms": 466.72,
+      "mean_replay_tokens": 159.18269230769232,
+      "recovery_requests_per_second_excluding_resets": 9.494586716160242
+    },
+    "8": {
+      "continuations": 104,
+      "mean_ttft_ms": 576.2602884615385,
+      "median_ttft_ms": 611.35,
+      "p95_ttft_ms": 783.0,
+      "mean_replay_tokens": 159.18269230769232,
+      "recovery_requests_per_second_excluding_resets": 11.290136979758087
+    },
+    "16": {
+      "continuations": 104,
+      "mean_ttft_ms": 915.8904807692307,
+      "median_ttft_ms": 868.085,
+      "p95_ttft_ms": 1375.31,
+      "mean_replay_tokens": 159.18269230769232,
+      "recovery_requests_per_second_excluding_resets": 11.000087789162164
+    },
+    "diagnostics": [
+      {
+        "concurrency": 4,
+        "measured_wall_ms": 75415.94,
+        "formal_jit_warnings": 0
+      },
+      {
+        "concurrency": 8,
+        "measured_wall_ms": 43716.36,
+        "formal_jit_warnings": 0
+      },
+      {
+        "concurrency": 16,
+        "measured_wall_ms": 29643.78,
+        "formal_jit_warnings": 0
+      }
+    ]
+  },
+  "correctness": {
+    "4": {
+      "first_token_mismatches": 2,
+      "requests": 120
+    },
+    "8": {
+      "first_token_mismatches": 2,
+      "requests": 120
+    },
+    "16": {
+      "first_token_mismatches": 2,
+      "requests": 120
+    }
+  }
+}

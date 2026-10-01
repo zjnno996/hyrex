@@ -1,0 +1,23 @@
+{
+  "baseline": {
+    "requests": 120,
+    "first_text_equal_native": true,
+    "all_mean_ttft_ms": 159.52741666666665,
+    "first_turn_mean_ttft_ms": 192.33583333333334,
+    "continuation_mean_ttft_ms": 155.88203703703704
+  },
+  "deep": {
+    "requests": 120,
+    "first_text_equal_native": true,
+    "all_mean_ttft_ms": 160.43675,
+    "first_turn_mean_ttft_ms": 193.4625,
+    "continuation_mean_ttft_ms": 156.76722222222222
+  },
+  "tail": {
+    "requests": 120,
+    "first_text_equal_native": true,
+    "all_mean_ttft_ms": 176.5815,
+    "first_turn_mean_ttft_ms": 182.54666666666665,
+    "continuation_mean_ttft_ms": 175.9187037037037
+  }
+}

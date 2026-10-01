@@ -1,0 +1,29 @@
+{
+  "baseline": {
+    "returncode": 0,
+    "first_text_mismatches_vs_eager_native": [],
+    "first_text_mismatches_vs_graph_native": [],
+    "requests": 40,
+    "all_mean_ttft_ms": 132.443,
+    "continuation_mean_ttft_ms": 130.83888888888887,
+    "performance_valid": true
+  },
+  "deep": {
+    "returncode": 0,
+    "first_text_mismatches_vs_eager_native": [],
+    "first_text_mismatches_vs_graph_native": [],
+    "requests": 40,
+    "all_mean_ttft_ms": 155.224,
+    "continuation_mean_ttft_ms": 151.85305555555556,
+    "performance_valid": true
+  },
+  "tail": {
+    "returncode": 0,
+    "first_text_mismatches_vs_eager_native": [],
+    "first_text_mismatches_vs_graph_native": [],
+    "requests": 40,
+    "all_mean_ttft_ms": 165.1925,
+    "continuation_mean_ttft_ms": 161.66055555555556,
+    "performance_valid": true
+  }
+}

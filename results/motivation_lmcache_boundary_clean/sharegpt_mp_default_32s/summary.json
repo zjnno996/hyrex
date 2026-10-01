@@ -1,0 +1,17 @@
+{
+  "sessions": 32,
+  "seed_requests": 96,
+  "resume_requests": 96,
+  "all_hits_chunk_aligned": true,
+  "hit_histogram": {
+    "528": 47,
+    "1056": 36,
+    "1584": 13
+  },
+  "below_aligned_prior_prefix": 0,
+  "positive_gap_requests": 96,
+  "mean_gap_tokens": 258.54,
+  "median_gap_tokens": 236.0,
+  "max_gap_tokens": 511,
+  "sum_gap_tokens": 24820
+}

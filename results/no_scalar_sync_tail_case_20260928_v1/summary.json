@@ -1,0 +1,14 @@
+{
+  "1_optimized": {
+    "requests": 6,
+    "correctness_passed": true,
+    "mean_ttft_ms": 156.25666666666666,
+    "continuation_mean_ttft_ms": 153.81666666666666
+  },
+  "2_baseline": {
+    "requests": 6,
+    "correctness_passed": true,
+    "mean_ttft_ms": 171.79166666666666,
+    "continuation_mean_ttft_ms": 137.50666666666666
+  }
+}

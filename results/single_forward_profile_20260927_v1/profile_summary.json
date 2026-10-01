@@ -1,0 +1,169 @@
+{
+  "baseline": {
+    "first_text": "\n\n",
+    "cached_tokens": 528,
+    "kernel_count": 1858,
+    "kernel_ms_sum": 47.223892,
+    "ops": {
+      "ChunkGatedDeltaRuleFunction": {
+        "count": 24,
+        "inclusive_cpu_ms": 28.992812
+      },
+      "aten::_local_scalar_dense": {
+        "count": 33,
+        "inclusive_cpu_ms": 0.048881999999999995
+      },
+      "aten::item": {
+        "count": 33,
+        "inclusive_cpu_ms": 0.164742
+      },
+      "aten::is_nonzero": {
+        "count": 0,
+        "inclusive_cpu_ms": 0
+      },
+      "aten::clone": {
+        "count": 105,
+        "inclusive_cpu_ms": 4.523122999999999
+      },
+      "aten::cat": {
+        "count": 5,
+        "inclusive_cpu_ms": 0.12162599999999998
+      },
+      "aten::mm": {
+        "count": 153,
+        "inclusive_cpu_ms": 11.593341
+      },
+      "aten::copy_": {
+        "count": 651,
+        "inclusive_cpu_ms": 15.70009199999999
+      }
+    },
+    "gemm_kernel_ms_by_shape": {
+      "[[303, 4096], [4096, 12288]]": 6.138031999999999,
+      "[[303, 4096], [4096, 64]]": 0.174336,
+      "[[303, 4096], [4096, 4096]]": 3.0580220000000002,
+      "[[303, 4096], [4096, 24576]]": 19.197306,
+      "[[303, 12288], [12288, 4096]]": 6.993297000000001,
+      "[[303, 4096], [4096, 10240]]": 1.626407,
+      "[[1, 4096], [4096, 248320]]": 2.07511
+    },
+    "forward_cpu_ranges": [
+      [
+        "execute_context_1(303)_generation_0(0)",
+        217.380982
+      ]
+    ]
+  },
+  "deep": {
+    "first_text": "\n\n",
+    "cached_tokens": 752,
+    "kernel_count": 1882,
+    "kernel_ms_sum": 47.404686999999996,
+    "ops": {
+      "ChunkGatedDeltaRuleFunction": {
+        "count": 24,
+        "inclusive_cpu_ms": 18.566208000000003
+      },
+      "aten::_local_scalar_dense": {
+        "count": 33,
+        "inclusive_cpu_ms": 0.028682
+      },
+      "aten::item": {
+        "count": 33,
+        "inclusive_cpu_ms": 0.11054499999999999
+      },
+      "aten::is_nonzero": {
+        "count": 0,
+        "inclusive_cpu_ms": 0
+      },
+      "aten::clone": {
+        "count": 105,
+        "inclusive_cpu_ms": 2.990594
+      },
+      "aten::cat": {
+        "count": 5,
+        "inclusive_cpu_ms": 0.088309
+      },
+      "aten::mm": {
+        "count": 161,
+        "inclusive_cpu_ms": 6.8218729999999965
+      },
+      "aten::copy_": {
+        "count": 658,
+        "inclusive_cpu_ms": 9.532712999999998
+      }
+    },
+    "gemm_kernel_ms_by_shape": {
+      "[[303, 4096], [4096, 12288]]": 6.1359889999999995,
+      "[[303, 4096], [4096, 64]]": 0.17731199999999994,
+      "[[303, 4096], [4096, 4096]]": 3.0516560000000004,
+      "[[303, 4096], [4096, 24576]]": 19.236057,
+      "[[303, 12288], [12288, 4096]]": 6.997236999999998,
+      "[[303, 4096], [4096, 8192]]": 1.494852,
+      "[[79, 4096], [4096, 2048]]": 0.24601800000000001,
+      "[[1, 4096], [4096, 248320]]": 2.0741509999999996
+    },
+    "forward_cpu_ranges": [
+      [
+        "execute_context_1(303)_generation_0(0)",
+        113.633938
+      ]
+    ]
+  },
+  "tail": {
+    "first_text": "\n\n",
+    "cached_tokens": 752,
+    "kernel_count": 2096,
+    "kernel_ms_sum": 26.661612,
+    "ops": {
+      "ChunkGatedDeltaRuleFunction": {
+        "count": 48,
+        "inclusive_cpu_ms": 29.472222999999996
+      },
+      "aten::_local_scalar_dense": {
+        "count": 81,
+        "inclusive_cpu_ms": 0.9486450000000001
+      },
+      "aten::item": {
+        "count": 81,
+        "inclusive_cpu_ms": 1.132817
+      },
+      "aten::is_nonzero": {
+        "count": 24,
+        "inclusive_cpu_ms": 0.41034899999999996
+      },
+      "aten::clone": {
+        "count": 201,
+        "inclusive_cpu_ms": 5.076320999999997
+      },
+      "aten::cat": {
+        "count": 29,
+        "inclusive_cpu_ms": 0.6818909999999998
+      },
+      "aten::mm": {
+        "count": 153,
+        "inclusive_cpu_ms": 6.026132999999997
+      },
+      "aten::copy_": {
+        "count": 791,
+        "inclusive_cpu_ms": 11.425993999999994
+      }
+    },
+    "gemm_kernel_ms_by_shape": {
+      "[[79, 4096], [4096, 12288]]": 3.0698619999999996,
+      "[[79, 4096], [4096, 64]]": 0.130625,
+      "[[79, 4096], [4096, 4096]]": 1.3719070000000002,
+      "[[79, 4096], [4096, 24576]]": 9.266364,
+      "[[79, 12288], [12288, 4096]]": 4.360012,
+      "[[79, 4096], [4096, 10240]]": 0.8612839999999999,
+      "[[1, 4096], [4096, 248320]]": 2.0720709999999998
+    },
+    "forward_cpu_ranges": [
+      [
+        "execute_context_1(79)_generation_0(0)",
+        124.961953
+      ]
+    ]
+  },
+  "limitations": "Diagnostic single-request traces, profiler overhead and first-profile effects; no additive TTFT decomposition. LMCache-process H2D is not fully captured. CPU operator times are inclusive and overlap."
+}

@@ -1,0 +1,8 @@
+{"length": 651, "repeat": 0, "cached_tokens": 0, "ttft_ms": 302.31}
+{"length": 651, "repeat": 1, "cached_tokens": 640, "ttft_ms": 191.76}
+{"length": 1191, "repeat": 0, "cached_tokens": 0, "ttft_ms": 209.59}
+{"length": 1191, "repeat": 1, "cached_tokens": 1184, "ttft_ms": 133.81}
+{"length": 1708, "repeat": 0, "cached_tokens": 0, "ttft_ms": 315.95}
+{"length": 1708, "repeat": 1, "cached_tokens": 1696, "ttft_ms": 144.32}
+{"length": 1922, "repeat": 0, "cached_tokens": 0, "ttft_ms": 340.45}
+{"length": 1922, "repeat": 1, "cached_tokens": 1920, "ttft_ms": 131.57}

@@ -1,0 +1,7 @@
+{"prefix_tokens": 1584, "independent_full_kv_boundary": 1584, "stock_common_boundary": 1584, "stranded_full_kv_tokens": 0, "common_boundary_utilization": 1.0}
+{"prefix_tokens": 1712, "independent_full_kv_boundary": 1712, "stock_common_boundary": 1584, "stranded_full_kv_tokens": 128, "common_boundary_utilization": 0.9252336448598131}
+{"prefix_tokens": 1840, "independent_full_kv_boundary": 1840, "stock_common_boundary": 1584, "stranded_full_kv_tokens": 256, "common_boundary_utilization": 0.8608695652173913}
+{"prefix_tokens": 1968, "independent_full_kv_boundary": 1968, "stock_common_boundary": 1584, "stranded_full_kv_tokens": 384, "common_boundary_utilization": 0.8048780487804879}
+{"prefix_tokens": 2064, "independent_full_kv_boundary": 2064, "stock_common_boundary": 1584, "stranded_full_kv_tokens": 480, "common_boundary_utilization": 0.7674418604651163}
+{"prefix_tokens": 2111, "independent_full_kv_boundary": 2096, "stock_common_boundary": 1584, "stranded_full_kv_tokens": 512, "common_boundary_utilization": 0.7503552818569399}
+{"prefix_tokens": 2112, "independent_full_kv_boundary": 2112, "stock_common_boundary": 2112, "stranded_full_kv_tokens": 0, "common_boundary_utilization": 1.0}

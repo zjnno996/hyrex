@@ -1,0 +1,97 @@
+{
+  "sessions": 4,
+  "requests": 40,
+  "all_hits_chunk_aligned": true,
+  "by_turn": {
+    "0": {
+      "requests": 4,
+      "cache_hit_requests": 0,
+      "eligible_aligned_requests": 0,
+      "missing_aligned_requests": 0,
+      "median_elapsed_ms": 189.74,
+      "median_ttft_ms": 189.56,
+      "median_unrecovered_prior_tokens": 0.0
+    },
+    "1": {
+      "requests": 4,
+      "cache_hit_requests": 4,
+      "eligible_aligned_requests": 4,
+      "missing_aligned_requests": 0,
+      "median_elapsed_ms": 146.19,
+      "median_ttft_ms": 146.01,
+      "median_unrecovered_prior_tokens": 274.5
+    },
+    "2": {
+      "requests": 4,
+      "cache_hit_requests": 4,
+      "eligible_aligned_requests": 4,
+      "missing_aligned_requests": 0,
+      "median_elapsed_ms": 145.95,
+      "median_ttft_ms": 145.79,
+      "median_unrecovered_prior_tokens": 339.0
+    },
+    "3": {
+      "requests": 4,
+      "cache_hit_requests": 4,
+      "eligible_aligned_requests": 4,
+      "missing_aligned_requests": 0,
+      "median_elapsed_ms": 178.91,
+      "median_ttft_ms": 178.73,
+      "median_unrecovered_prior_tokens": 448.0
+    },
+    "4": {
+      "requests": 4,
+      "cache_hit_requests": 4,
+      "eligible_aligned_requests": 4,
+      "missing_aligned_requests": 0,
+      "median_elapsed_ms": 161.01,
+      "median_ttft_ms": 160.83,
+      "median_unrecovered_prior_tokens": 252.0
+    },
+    "5": {
+      "requests": 4,
+      "cache_hit_requests": 4,
+      "eligible_aligned_requests": 4,
+      "missing_aligned_requests": 0,
+      "median_elapsed_ms": 150.51,
+      "median_ttft_ms": 150.34,
+      "median_unrecovered_prior_tokens": 200.5
+    },
+    "6": {
+      "requests": 4,
+      "cache_hit_requests": 4,
+      "eligible_aligned_requests": 4,
+      "missing_aligned_requests": 0,
+      "median_elapsed_ms": 155.45,
+      "median_ttft_ms": 155.29,
+      "median_unrecovered_prior_tokens": 288.5
+    },
+    "7": {
+      "requests": 4,
+      "cache_hit_requests": 4,
+      "eligible_aligned_requests": 4,
+      "missing_aligned_requests": 0,
+      "median_elapsed_ms": 192.94,
+      "median_ttft_ms": 192.77,
+      "median_unrecovered_prior_tokens": 342.0
+    },
+    "8": {
+      "requests": 4,
+      "cache_hit_requests": 4,
+      "eligible_aligned_requests": 4,
+      "missing_aligned_requests": 0,
+      "median_elapsed_ms": 166.19,
+      "median_ttft_ms": 166.0,
+      "median_unrecovered_prior_tokens": 92.5
+    },
+    "9": {
+      "requests": 4,
+      "cache_hit_requests": 4,
+      "eligible_aligned_requests": 4,
+      "missing_aligned_requests": 0,
+      "median_elapsed_ms": 180.36,
+      "median_ttft_ms": 180.12,
+      "median_unrecovered_prior_tokens": 254.5
+    }
+  }
+}

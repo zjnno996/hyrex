@@ -1,0 +1,52 @@
+{
+  "scope": "one sequential 4x10 pass per arm; matched experimental stack",
+  "outliers_removed": false,
+  "arms": {
+    "shallow": {
+      "resume_count": 36,
+      "mean_ttft_ms": 174.71916666666667,
+      "stdev_ttft_ms": 29.33459706558111,
+      "max_ttft_ms": 236.72,
+      "wins_vs_shallow": 0,
+      "text_mismatches_vs_shallow": [],
+      "session_means_ms": {
+        "Pr8nMeM_0": 173.22333333333333,
+        "Ud3L2sd_124": 174.49,
+        "WRAImOg_0": 175.07777777777778,
+        "WnjND3T_0": 176.08555555555554
+      }
+    },
+    "deep_qkv": {
+      "resume_count": 36,
+      "mean_ttft_ms": 182.41083333333333,
+      "stdev_ttft_ms": 49.267431802648,
+      "max_ttft_ms": 412.95,
+      "wins_vs_shallow": 21,
+      "text_mismatches_vs_shallow": [],
+      "session_means_ms": {
+        "Pr8nMeM_0": 172.63222222222223,
+        "Ud3L2sd_124": 169.61555555555555,
+        "WRAImOg_0": 191.29222222222222,
+        "WnjND3T_0": 196.10333333333332
+      }
+    },
+    "deep_qonly": {
+      "resume_count": 36,
+      "mean_ttft_ms": 173.3047222222222,
+      "stdev_ttft_ms": 29.243835246435015,
+      "max_ttft_ms": 253.01,
+      "wins_vs_shallow": 25,
+      "text_mismatches_vs_shallow": [],
+      "session_means_ms": {
+        "Pr8nMeM_0": 172.35333333333332,
+        "Ud3L2sd_124": 173.13888888888889,
+        "WRAImOg_0": 177.50777777777776,
+        "WnjND3T_0": 170.2188888888889
+      }
+    }
+  },
+  "extra_full_kv_tokens_mean": 267.55555555555554,
+  "extra_full_h2d_MiB_mean": 8.36111111111111,
+  "qonly_saving_ms": 1.414444444444456,
+  "qonly_saving_percent": 0.8095531082419631
+}

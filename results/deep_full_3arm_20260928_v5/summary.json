@@ -1,0 +1,44 @@
+{
+  "smoke_optimized": {
+    "requests": 8,
+    "checks_passed": true,
+    "mean_ttft_ms": 212.00625,
+    "continuation_mean_ttft_ms": 187.0975
+  },
+  "1_baseline": {
+    "requests": 40,
+    "checks_passed": true,
+    "mean_ttft_ms": 163.68125,
+    "continuation_mean_ttft_ms": 159.49805555555557
+  },
+  "2_old": {
+    "requests": 40,
+    "checks_passed": true,
+    "mean_ttft_ms": 164.07425,
+    "continuation_mean_ttft_ms": 160.255
+  },
+  "3_optimized": {
+    "requests": 40,
+    "checks_passed": true,
+    "mean_ttft_ms": 165.138,
+    "continuation_mean_ttft_ms": 162.4936111111111
+  },
+  "4_optimized": {
+    "requests": 40,
+    "checks_passed": true,
+    "mean_ttft_ms": 167.04825,
+    "continuation_mean_ttft_ms": 163.8438888888889
+  },
+  "5_old": {
+    "requests": 40,
+    "checks_passed": true,
+    "mean_ttft_ms": 151.11825,
+    "continuation_mean_ttft_ms": 147.68
+  },
+  "6_baseline": {
+    "requests": 40,
+    "checks_passed": true,
+    "mean_ttft_ms": 145.7675,
+    "continuation_mean_ttft_ms": 141.7511111111111
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "trace": "/root/hyrex_results/deep_kv_profile_deep_qkv_20260927_v1/profile/rank0.1790479502239570726.pt.trace.json.gz",
+  "scope": "profiled kernel sums, not TTFT; profiler can perturb timing",
+  "prefill_mm_shapes": {
+    "[[528, 4096], [4096, 12288]]": {
+      "kernel_count": 24,
+      "kernel_ms_sum": 10.183321999999999
+    },
+    "[[528, 4096], [4096, 64]]": {
+      "kernel_count": 48,
+      "kernel_ms_sum": 0.258081
+    },
+    "[[528, 4096], [4096, 4096]]": {
+      "kernel_count": 32,
+      "kernel_ms_sum": 4.778126
+    },
+    "[[528, 4096], [4096, 24576]]": {
+      "kernel_count": 32,
+      "kernel_ms_sum": 24.539362000000004
+    },
+    "[[528, 12288], [12288, 4096]]": {
+      "kernel_count": 32,
+      "kernel_ms_sum": 12.125344
+    },
+    "[[528, 4096], [4096, 10240]]": {
+      "kernel_count": 8,
+      "kernel_ms_sum": 2.830057
+    },
+    "[[135, 4096], [4096, 12288]]": {
+      "kernel_count": 24,
+      "kernel_ms_sum": 3.584971
+    },
+    "[[135, 4096], [4096, 64]]": {
+      "kernel_count": 48,
+      "kernel_ms_sum": 0.13459200000000004
+    },
+    "[[135, 4096], [4096, 4096]]": {
+      "kernel_count": 32,
+      "kernel_ms_sum": 1.8661809999999996
+    },
+    "[[135, 4096], [4096, 24576]]": {
+      "kernel_count": 32,
+      "kernel_ms_sum": 8.665942999999999
+    },
+    "[[135, 12288], [12288, 4096]]": {
+      "kernel_count": 32,
+      "kernel_ms_sum": 4.695787999999999
+    },
+    "[[135, 4096], [4096, 10240]]": {
+      "kernel_count": 8,
+      "kernel_ms_sum": 1.0543390000000001
+    }
+  }
+}

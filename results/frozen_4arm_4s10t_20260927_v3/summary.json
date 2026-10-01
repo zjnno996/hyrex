@@ -1,0 +1,22 @@
+{
+  "baseline": {
+    "mean_ttft_ms": 167.09222222222223,
+    "min_ttft_ms": 110.07,
+    "max_ttft_ms": 237.07
+  },
+  "shallow": {
+    "mean_ttft_ms": 171.4272222222222,
+    "min_ttft_ms": 136.49,
+    "max_ttft_ms": 253.62
+  },
+  "deep_qkv": {
+    "mean_ttft_ms": 174.6613888888889,
+    "min_ttft_ms": 139.13,
+    "max_ttft_ms": 244.98
+  },
+  "deep_qonly": {
+    "mean_ttft_ms": 172.41361111111112,
+    "min_ttft_ms": 134.21,
+    "max_ttft_ms": 240.06
+  }
+}

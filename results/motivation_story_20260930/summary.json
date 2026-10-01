@@ -1,0 +1,75 @@
+{
+  "source": "/root/hyrex_results/native_tail_16s_c1_20260930_v1",
+  "continuations": 104,
+  "gap": {
+    "positive_requests": 102,
+    "positive_percent": 98.07692307692308,
+    "mean_tokens": 232.30769230769232,
+    "median_tokens": 216.0,
+    "p95_tokens": 480,
+    "max_tokens": 512
+  },
+  "bins": [
+    {
+      "range": "0-127",
+      "requests": 30,
+      "mean_gap": 58.666666666666664,
+      "mean_tail_minus_native_ms": 24.788999999999998,
+      "tail_faster": 2
+    },
+    {
+      "range": "128-255",
+      "requests": 28,
+      "mean_gap": 185.71428571428572,
+      "mean_tail_minus_native_ms": 20.955714285714283,
+      "tail_faster": 2
+    },
+    {
+      "range": "256-383",
+      "requests": 26,
+      "mean_gap": 314.46153846153845,
+      "mean_tail_minus_native_ms": -2.733076923076927,
+      "tail_faster": 9
+    },
+    {
+      "range": "384-512",
+      "requests": 20,
+      "mean_gap": 451.2,
+      "mean_tail_minus_native_ms": -18.960000000000004,
+      "tail_faster": 14
+    }
+  ],
+  "loso_policy_raw": {
+    "requests": 104,
+    "thresholds_tokens": [
+      336,
+      352
+    ],
+    "tail_selections": 29,
+    "native_mean_ttft_ms": 159.3814423076923,
+    "policy_mean_ttft_ms": 153.04721153846154,
+    "mean_ttft_change_percent": -3.974258657417773
+  },
+  "loso_policy_without_max_native_ttft": {
+    "excluded": {
+      "session": "IJ1TcWC_14",
+      "turn": 3,
+      "native_ttft": 450.44
+    },
+    "requests": 103,
+    "thresholds_tokens": [
+      336,
+      368,
+      464
+    ],
+    "tail_selections": 25,
+    "native_mean_ttft_ms": 156.55563106796117,
+    "policy_mean_ttft_ms": 154.13844660194175,
+    "mean_ttft_change_percent": -1.5439779773683826
+  },
+  "limitations": [
+    "Tail hit is the prototype's exact executable boundary, not a claim that native LMCache physically stored the same finer-grained state.",
+    "The LOSO selector is an offline opportunity analysis, not an online HyRex result.",
+    "One first-token near-tie differs across 120 total paired requests."
+  ]
+}

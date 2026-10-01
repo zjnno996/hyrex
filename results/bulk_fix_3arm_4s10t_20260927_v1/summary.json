@@ -1,0 +1,17 @@
+{
+  "baseline": {
+    "mean_ttft_ms": 155.50027777777777,
+    "min_ttft_ms": 114.48,
+    "max_ttft_ms": 238.89
+  },
+  "deep_qonly": {
+    "mean_ttft_ms": 174.07333333333332,
+    "min_ttft_ms": 119.6,
+    "max_ttft_ms": 278.72
+  },
+  "bulk_fix": {
+    "mean_ttft_ms": 165.92083333333335,
+    "min_ttft_ms": 115.43,
+    "max_ttft_ms": 248.17
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "1_baseline": {
+    "requests": 40,
+    "first_token_checks_passed": true,
+    "formal_jit_warnings": 0,
+    "mean_ttft_ms": 146.9505,
+    "continuation_mean_ttft_ms": 144.785
+  },
+  "2_tail": {
+    "requests": 40,
+    "first_token_checks_passed": true,
+    "formal_jit_warnings": 0,
+    "mean_ttft_ms": 169.072,
+    "continuation_mean_ttft_ms": 169.27805555555557
+  },
+  "3_tail": {
+    "requests": 40,
+    "first_token_checks_passed": true,
+    "formal_jit_warnings": 0,
+    "mean_ttft_ms": 171.522,
+    "continuation_mean_ttft_ms": 170.92
+  },
+  "4_baseline": {
+    "requests": 40,
+    "first_token_checks_passed": true,
+    "formal_jit_warnings": 0,
+    "mean_ttft_ms": 163.70475,
+    "continuation_mean_ttft_ms": 159.95
+  },
+  "pooled_continuation_mean_ms": {
+    "baseline": 152.3675,
+    "tail": 170.09902777777776
+  },
+  "tail_reduction_percent": -11.637342463305988
+}

@@ -1,0 +1,1281 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, field
+from itertools import islice
+from math import lcm
+import os
+from typing import Any, NamedTuple
+
+import vllm.envs as envs
+from vllm.distributed.kv_events import BlockRemoved, BlockStored, KVCacheEvent
+from vllm.distributed.kv_transfer.kv_connector.utils import yield_req_data
+from vllm.distributed.kv_transfer.kv_connector.v1.base import KVConnectorMetadata
+from vllm.distributed.kv_transfer.kv_connector.v1.offloading.common import (
+    OffloadingConnectorMetadata,
+    OffloadingWorkerMetadata,
+    ReqId,
+    TransferJob,
+)
+from vllm.logger import init_logger
+from vllm.utils.math_utils import cdiv
+from vllm.v1.core.kv_cache_manager import KVCacheBlocks
+from vllm.v1.core.sched.output import SchedulerOutput
+from vllm.v1.kv_cache_interface import (
+    FullAttentionSpec,
+    KVCacheSpec,
+    MambaSpec,
+    SlidingWindowSpec,
+)
+from vllm.v1.kv_offload.base import (
+    GPULoadStoreSpec,
+    OffloadingManager,
+    OffloadingSpec,
+    OffloadKey,
+    OffloadPolicy,
+    ReqContext,
+    RequestOffloadingContext,
+    get_offload_block_hash,
+    make_offload_key,
+)
+from vllm.v1.outputs import KVConnectorOutput
+from vllm.v1.request import Request
+
+logger = init_logger(__name__)
+
+
+@dataclass(slots=True)
+class TransferJobStatus:
+    """Tracks scheduler-side state for a single transfer job."""
+
+    req_id: ReqId
+    # Number of workers still pending. Starts at num_workers,
+    # decremented as each worker reports completion. Job is done at 0.
+    pending_count: int
+    # Offload keys this job covers; passed to manager.complete_*().
+    keys: set[OffloadKey]
+    is_store: bool
+    # Store src block IDs whose ref_cnt protects them while the request
+    # runs. Only registered in _block_id_to_pending_jobs on request_finished.
+    non_sliding_window_block_ids: list[int] | None = None
+    # Store src block IDs that may be freed before the request finishes.
+    # Registered in _block_id_to_pending_jobs at store creation time.
+    sliding_window_block_ids: list[int] | None = None
+
+
+class GroupOffloadConfig(NamedTuple):
+    group_idx: int
+    gpu_block_size: int
+    offloaded_block_size: int
+    hash_block_size_factor: int
+    # None below means full attention
+    sliding_window_size_in_blocks: int | None
+    # Number of this group's offloaded blocks per full-attention alignment
+    # segment. Used to skip storing SWA blocks that can never serve a load
+    # hit (e.g. DeepSeek V4 where SWA groups have much smaller block sizes
+    # than the MLA full-attention group).
+    # None for full-attention groups or when the optimization doesn't apply.
+    alignment_block_count: int | None = None
+
+
+def get_sliding_window_size_in_blocks(
+    kv_cache_spec: KVCacheSpec, offloaded_block_size: int
+) -> int | None:
+    if isinstance(kv_cache_spec, SlidingWindowSpec):
+        assert kv_cache_spec.sliding_window > 0
+        return cdiv(kv_cache_spec.sliding_window, offloaded_block_size)
+
+    if isinstance(kv_cache_spec, MambaSpec):
+        # Mamba depends on a single state
+        return 1
+
+    assert isinstance(kv_cache_spec, FullAttentionSpec)
+    return None
+
+
+class SchedulerOffloadConfig(NamedTuple):
+    kv_group_configs: tuple[GroupOffloadConfig, ...]
+    block_size_factor: int
+    num_workers: int
+    offload_prompt_only: bool
+
+    @classmethod
+    def from_spec(cls, spec: OffloadingSpec) -> "SchedulerOffloadConfig":
+        # Determine the alignment token count from the full-attention group(s).
+        # This is the offloaded_block_size of the full-attention group; load
+        # hits are always aligned to this boundary, so SWA blocks earlier in
+        # each segment can never serve a load hit. Relevant for hybrid
+        # architectures like DeepSeek V4 (MLA + SWA groups).
+        full_attn_offloaded_block_sizes: set[int] = set()
+        for idx, gpu_block_size in enumerate(spec.gpu_block_size):
+            kv_spec = spec.kv_cache_config.kv_cache_groups[idx].kv_cache_spec
+            sw = get_sliding_window_size_in_blocks(
+                kv_spec, gpu_block_size * spec.block_size_factor
+            )
+            if sw is None:
+                full_attn_offloaded_block_sizes.add(
+                    gpu_block_size * spec.block_size_factor
+                )
+
+        # Only apply the optimization if there's a single consistent
+        # full-attention alignment size.
+        alignment_tokens: int | None = None
+        if len(full_attn_offloaded_block_sizes) == 1:
+            alignment_tokens = full_attn_offloaded_block_sizes.pop()
+
+        def _alignment_block_count(
+            offloaded_block_size: int,
+            sliding_window_size_in_blocks: int | None,
+        ) -> int | None:
+            if alignment_tokens is None or sliding_window_size_in_blocks is None:
+                return None
+            if alignment_tokens <= offloaded_block_size:
+                return None
+            per_segment = alignment_tokens // offloaded_block_size
+            if sliding_window_size_in_blocks >= per_segment:
+                return None
+            return per_segment
+
+        return cls(
+            num_workers=spec.vllm_config.parallel_config.world_size,
+            kv_group_configs=tuple(
+                GroupOffloadConfig(
+                    group_idx=idx,
+                    gpu_block_size=gpu_block_size,
+                    offloaded_block_size=gpu_block_size * spec.block_size_factor,
+                    hash_block_size_factor=(
+                        (gpu_block_size * spec.block_size_factor)
+                        // spec.hash_block_size
+                    ),
+                    sliding_window_size_in_blocks=(
+                        sw := get_sliding_window_size_in_blocks(
+                            spec.kv_cache_config.kv_cache_groups[idx].kv_cache_spec,
+                            gpu_block_size * spec.block_size_factor,
+                        )
+                    ),
+                    alignment_block_count=_alignment_block_count(
+                        gpu_block_size * spec.block_size_factor, sw
+                    ),
+                )
+                for idx, gpu_block_size in enumerate(spec.gpu_block_size)
+            ),
+            block_size_factor=spec.block_size_factor,
+            offload_prompt_only=spec.offload_prompt_only,
+        )
+
+
+@dataclass
+class RequestGroupState:
+    offload_keys: list[OffloadKey] = field(default_factory=list)
+    block_ids: list[int] = field(default_factory=list)
+    # index of next block (of size offloaded_block_size) to offload
+    next_stored_block_idx: int = 0
+    # number of offloaded blocks hit (including GPU prefix cache)
+    # when the request first started
+    num_hit_blocks: int = 0
+
+
+@dataclass(slots=True)
+class RequestOffloadState:
+    config: SchedulerOffloadConfig
+    req: Request
+    req_context: ReqContext
+    offloading_context: RequestOffloadingContext
+    group_states: tuple[RequestGroupState, ...] = field(init=False)
+    # upper bound on tokens to offload for this request; None means no cap
+    max_offload_tokens: int | None = None
+    # number of hits in the GPU cache
+    num_locally_computed_tokens: int = 0
+    # In-flight job IDs. Per the connector's invariant, at any given time
+    # this contains either a single load job, or one or more store jobs.
+    transfer_jobs: set[int] = field(default_factory=set)
+    # Only the second independent-recovery load uses a group subset.
+    lookup_groups: tuple[int, ...] | None = None
+
+    def __post_init__(self) -> None:
+        self.group_states = tuple(
+            RequestGroupState() for _ in self.config.kv_group_configs
+        )
+        params = self.req.kv_transfer_params
+
+        # NOTE: This field is experimental and subject to change in the future.
+        raw = params.get("max_offload_tokens") if params else None
+        if type(raw) is int and raw >= 0:
+            self.max_offload_tokens = raw
+            logger.debug(
+                "Request %s: max_offload_tokens set to %d",
+                self.req.request_id,
+                raw,
+            )
+        elif raw is not None:
+            logger.warning(
+                "max_offload_tokens must be a non-negative int, got %r; ignoring", raw
+            )
+
+    def update_offload_keys(self) -> None:
+        for group_config, group_state in zip(
+            self.config.kv_group_configs, self.group_states
+        ):
+            for req_block_hash in islice(
+                self.req.block_hashes,
+                group_config.hash_block_size_factor * len(group_state.offload_keys)
+                + group_config.hash_block_size_factor
+                - 1,
+                None,
+                group_config.hash_block_size_factor,
+            ):
+                group_state.offload_keys.append(
+                    make_offload_key(req_block_hash, group_config.group_idx)
+                )
+
+    def update_block_id_groups(
+        self, new_block_id_groups: tuple[list[int], ...] | None
+    ) -> None:
+        if new_block_id_groups is None:
+            return
+
+        assert len(new_block_id_groups) == len(self.group_states)
+        for group_state, new_blocks in zip(self.group_states, new_block_id_groups):
+            group_state.block_ids.extend(new_blocks)
+
+    def advance_stored_idx(self, num_offloadable_tokens: int) -> None:
+        for group_config, group_state in zip(
+            self.config.kv_group_configs, self.group_states
+        ):
+            num_blocks = num_offloadable_tokens // group_config.offloaded_block_size
+            group_state.next_stored_block_idx = num_blocks
+
+    def update_num_hit_blocks(self, num_cached_tokens: int) -> None:
+        for group_config, group_state in zip(
+            self.config.kv_group_configs, self.group_states
+        ):
+            group_state.num_hit_blocks = (
+                num_cached_tokens // group_config.offloaded_block_size
+            )
+
+
+def _create_req_context(req: Request) -> ReqContext:
+    return ReqContext(
+        req_id=req.request_id,
+        kv_transfer_params=req.kv_transfer_params,
+    )
+
+
+class OffloadingConnectorScheduler:
+    """Implementation of Scheduler side methods"""
+
+    def __init__(self, spec: OffloadingSpec):
+        self.config = SchedulerOffloadConfig.from_spec(spec)
+        self.manager: OffloadingManager = spec.get_manager()
+        self._group_specs = tuple(
+            group.kv_cache_spec for group in spec.kv_cache_config.kv_cache_groups
+        )
+        # Controlled CPU-cache mismatch for the 9B motivation experiment.
+        # Zero leaves production storage unchanged; both policies use the
+        # same cap, and FullAttention pages are never capped.
+        self._recurrent_store_cap = int(
+            os.getenv("VLLM_HYREX_EXPERIMENT_RECURRENT_STORE_CAP", "0")
+        )
+        if self._recurrent_store_cap < 0:
+            raise ValueError("recurrent store cap must be non-negative")
+
+        full_attention_groups: list[int] = []
+        sliding_window_groups: list[int] = []
+        for group_config in self.config.kv_group_configs:
+            if group_config.sliding_window_size_in_blocks is None:
+                full_attention_groups.append(group_config.group_idx)
+            else:
+                sliding_window_groups.append(group_config.group_idx)
+
+        # sort sliding window groups by window size in decreasing order
+        def _sliding_window_sort_key(i: int) -> int:
+            val = self.config.kv_group_configs[i].sliding_window_size_in_blocks
+            assert val is not None
+            return val
+
+        sliding_window_groups.sort(key=_sliding_window_sort_key, reverse=True)
+
+        # used by _lookup
+        self._sliding_window_groups: tuple[int, ...] = tuple(sliding_window_groups)
+        self._lookup_groups = tuple(full_attention_groups) + self._sliding_window_groups
+
+        # Native CPU offloading normally transfers every KV group.  The
+        # hybrid recovery experiment can select one attention type for P3/P4;
+        # the main Scheduler then performs one replay pass for the missing
+        # attention type.
+        self._loaded_group_indices = self._get_loaded_group_indices()
+        if len(self._loaded_group_indices) != len(self.config.kv_group_configs):
+            selected = set(self._loaded_group_indices)
+            self._lookup_groups = tuple(
+                group_idx for group_idx in self._lookup_groups if group_idx in selected
+            )
+        logger.info(
+            "Native CPU offload hybrid policy=%s; loaded KV groups=%s/%s",
+            envs.VLLM_MOONCAKE_HYBRID_POLICY,
+            self._loaded_group_indices,
+            len(self.config.kv_group_configs),
+        )
+
+        self._req_status: dict[ReqId, RequestOffloadState] = {}
+        self._current_batch_load_jobs: dict[int, TransferJob] = {}
+        self._current_batch_jobs_to_flush: set[int] = set()
+        # GPU block IDs allocated in the current engine step
+        self._current_batch_allocated_block_ids: set[int] = set()
+        # if GPU prefix caching is enabled,
+        # track loaded blocks to avoid redundant loads
+        self._blocks_being_loaded: set[OffloadKey] | None = (
+            set() if spec.vllm_config.cache_config.enable_prefix_caching else None
+        )
+
+        # Job ID counter shared by loads and stores.
+        self._job_counter: int = 0
+        # Threshold value for stale jobs. All job ids >= _stale_job_threshold are
+        # active jobs.
+        self._stale_job_threshold: int = 0
+        self._jobs: dict[int, TransferJobStatus] = {}
+
+        # block_id -> pending store job_ids. Used to track jobs that needs
+        # flushing in case a block is re-allocated by the KV cache manager.
+        # Populated only for finished requests (running-request blocks are
+        # protected by their ref_cnt) and for sliding window blocks (which can
+        # be freed before a request finishes).
+        self._block_id_to_pending_jobs: dict[int, set[int]] = {}
+
+    def _get_loaded_group_indices(self) -> tuple[int, ...]:
+        """Return KV groups materialized from CPU for the active policy."""
+        policy = envs.VLLM_MOONCAKE_HYBRID_POLICY
+        if policy not in {
+            "full_load_linear_replay",
+            "full_replay_linear_load",
+        }:
+            return tuple(range(len(self.config.kv_group_configs)))
+
+        # Qwen3.5 GDN groups use MambaSpec.  Keep this type check explicit so
+        # a future hybrid model does not silently classify an unknown group as
+        # Linear state.
+        if policy == "full_load_linear_replay":
+            return tuple(
+                group_idx
+                for group_idx in range(len(self.config.kv_group_configs))
+                if isinstance(self._group_specs[group_idx], FullAttentionSpec)
+            )
+        return tuple(
+            group_idx
+            for group_idx in range(len(self.config.kv_group_configs))
+            if isinstance(self._group_specs[group_idx], MambaSpec)
+        )
+
+    def _max_hit_before_last_token_replay(self, num_tokens: int) -> int:
+        """Keep a recurrent state strictly before the token to be replayed."""
+        mamba_block_sizes = [
+            self.config.kv_group_configs[group_idx].offloaded_block_size
+            for group_idx in self._loaded_group_indices
+            if isinstance(self._group_specs[group_idx], MambaSpec)
+        ]
+        if not mamba_block_sizes:
+            return max(0, num_tokens - 1)
+        alignment = lcm(*mamba_block_sizes)
+        return max(0, (num_tokens - 1) // alignment * alignment)
+
+    def _generate_job_id(self) -> int:
+        job_id = self._job_counter
+        self._job_counter += 1
+        return job_id
+
+    def _remove_pending_job(self, job_id: int, block_ids: list[int] | None) -> None:
+        for bid in block_ids or ():
+            pending = self._block_id_to_pending_jobs[bid]
+            pending.remove(job_id)
+            if not pending:
+                del self._block_id_to_pending_jobs[bid]
+
+    def _maximal_prefix_lookup(
+        self, keys: Iterable[OffloadKey], req_context: ReqContext
+    ) -> int | None:
+        """Return the number of consecutive offloaded blocks from the start,
+        or None if the backend deferred a lookup."""
+        hit_count = 0
+        defer_lookup = False
+        for key in keys:
+            result = self.manager.lookup(key, req_context)
+            if result is None:
+                defer_lookup = True
+                # continue lookup to allow manager to kick-off async lookups
+                # for all blocks (until a miss is detected)
+                result = True
+            if not result:
+                break
+            hit_count += 1
+        return hit_count if not defer_lookup else None
+
+    def _sliding_window_lookup(
+        self,
+        keys: Sequence[OffloadKey],
+        sliding_window_size: int,
+        req_context: ReqContext,
+    ) -> int | None:
+        """Return the end index (in `keys`) of the last run of
+        `sliding_window_size` consecutive hits, scanning from the end.
+        Returns 0 on miss, None if the backend deferred a lookup."""
+        defer_lookup = False
+        consecutive_hits = 0
+        for idx in range(len(keys) - 1, -1, -1):
+            result = self.manager.lookup(keys[idx], req_context)
+            if result is None:
+                defer_lookup = True
+                # continue lookup to allow manager to kick-off async lookups
+                # for all blocks (until a hit is detected)
+                result = False
+            if not result:
+                consecutive_hits = 0
+            else:
+                consecutive_hits += 1
+                if consecutive_hits == sliding_window_size:
+                    return idx + sliding_window_size if not defer_lookup else None
+        return consecutive_hits if not defer_lookup else None
+
+    def _touch(self, req_status: RequestOffloadState):
+        for group_idx, (group_config, group_state) in enumerate(
+            zip(self.config.kv_group_configs, req_status.group_states)
+        ):
+            if group_idx not in self._loaded_group_indices or group_idx not in (
+                req_status.lookup_groups or self._lookup_groups
+            ):
+                continue
+            if group_config.sliding_window_size_in_blocks is None:
+                self.manager.touch(group_state.offload_keys, req_status.req_context)
+            else:
+                # we aim to keep just blocks that are necessary to hit
+                # the original request (+ decoded blocks)
+                blocks_to_skip = max(
+                    0,
+                    group_state.num_hit_blocks
+                    - group_config.sliding_window_size_in_blocks,
+                )
+                self.manager.touch(
+                    group_state.offload_keys[blocks_to_skip:],
+                    req_status.req_context,
+                )
+
+    def _lookup(self, req_status: RequestOffloadState) -> int | None:
+        """
+        Find how many tokens beyond num_locally_computed_tokens can be loaded.
+
+        Iterates full-attention groups first (prefix lookup), then sliding-window
+        groups (suffix lookup). Each group may tighten max_hit_size_tokens, which
+        can invalidate an earlier group's result, so the loop re-runs when that
+        happens until num_hit_tokens converges.
+        """
+        num_computed_tokens = req_status.num_locally_computed_tokens
+        max_hit_size_tokens: int = req_status.req.num_tokens
+        lookup_groups = req_status.lookup_groups or self._lookup_groups
+        if req_status.req.hybrid_independent_stage == 1:
+            max_hit_size_tokens = min(
+                max_hit_size_tokens,
+                req_status.req.hybrid_independent_target_tokens,
+            )
+        if any(g in self._sliding_window_groups for g in lookup_groups) and not (
+            envs.VLLM_MOONCAKE_HYBRID_SUFFIX_ONLY
+            and envs.VLLM_MOONCAKE_HYBRID_POLICY
+            in {"full_load_linear_replay", "full_replay_linear_load"}
+        ):
+            # The last prompt token must be recomputed to produce its logits.
+            # A Full KV slot can be overwritten, but a Mamba cache block is a
+            # recurrent state *after* its final token.  Loading that state and
+            # replaying only the final token advances it twice, so replay the
+            # whole final Mamba page instead.
+            max_hit_size_tokens = self._max_hit_before_last_token_replay(
+                max_hit_size_tokens
+            )
+        num_hit_tokens: int = 0
+        defer_lookup = False
+        suffix_only = envs.VLLM_MOONCAKE_HYBRID_SUFFIX_ONLY
+        mixed_policy = envs.VLLM_MOONCAKE_HYBRID_POLICY in {
+            "full_load_linear_replay",
+            "full_replay_linear_load",
+        }
+        while lookup_groups:
+            looked_up_sliding_window: bool = False
+            groups_iter = iter(lookup_groups)
+            lookup_groups = ()
+            for group_idx in groups_iter:
+                group_config: GroupOffloadConfig = self.config.kv_group_configs[
+                    group_idx
+                ]
+                group_state: RequestGroupState = req_status.group_states[group_idx]
+                offloaded_block_size = group_config.offloaded_block_size
+                offload_keys = group_state.offload_keys
+
+                assert (
+                    len(offload_keys)
+                    >= req_status.req.num_tokens // offloaded_block_size
+                )
+
+                # Constrain to block-aligned boundary for this group
+                max_hit_size_tokens = min(
+                    max_hit_size_tokens, len(offload_keys) * offloaded_block_size
+                )
+                if max_hit_size_tokens - num_computed_tokens < offloaded_block_size:
+                    # we can only load less than a block, better skip
+                    return 0
+
+                num_blocks = min(
+                    cdiv(max_hit_size_tokens, offloaded_block_size), len(offload_keys)
+                )
+                # The selected group is not represented by the local GPU
+                # prefix in suffix-only mode.  Its CPU object therefore has
+                # to be looked up from token zero (Full KV needs the prefix
+                # keys/values to attend to the suffix; a Linear state is a
+                # whole-prefix recurrent checkpoint).  The returned hit
+                # count remains relative to ``num_computed_tokens`` so the
+                # main scheduler still sees only newly materialized tokens.
+                load_from_zero = suffix_only and mixed_policy
+                lookup_start_tokens = 0 if load_from_zero else num_computed_tokens
+                start_block_idx = lookup_start_tokens // offloaded_block_size
+                offload_keys = offload_keys[start_block_idx:num_blocks]
+                sliding_window_size_in_blocks = (
+                    group_config.sliding_window_size_in_blocks
+                )
+
+                # end index (in the sliced offload_keys) up to which we
+                # have backend-confirmed hits
+                num_hit_blocks: int | None
+                if sliding_window_size_in_blocks is None:
+                    num_hit_blocks = self._maximal_prefix_lookup(
+                        offload_keys, req_status.req_context
+                    )
+                else:
+                    num_hit_blocks = self._sliding_window_lookup(
+                        offload_keys,
+                        sliding_window_size_in_blocks,
+                        req_status.req_context,
+                    )
+                if num_hit_blocks == 0:
+                    return 0
+
+                if num_hit_blocks is None:
+                    defer_lookup = True
+                else:
+                    max_hit_size_tokens = min(
+                        max_hit_size_tokens,
+                        offloaded_block_size * (start_block_idx + num_hit_blocks),
+                    )
+
+                new_num_hit_tokens = max_hit_size_tokens - num_computed_tokens
+                if new_num_hit_tokens < offloaded_block_size:
+                    # we can only load less than a block, better skip
+                    return 0
+
+                if new_num_hit_tokens < num_hit_tokens:
+                    if defer_lookup:
+                        # make another iteration on all groups to check
+                        # if we still need to defer lookup
+                        defer_lookup = False
+                        lookup_groups = req_status.lookup_groups or self._lookup_groups
+                    elif looked_up_sliding_window and not lookup_groups:
+                        # we need another iteration to confirm previously looked up
+                        # sliding window works with the new_num_hit_tokens
+                        lookup_groups = self._sliding_window_groups
+
+                looked_up_sliding_window |= sliding_window_size_in_blocks is not None
+                num_hit_tokens = new_num_hit_tokens
+
+        if defer_lookup:
+            logger.debug(
+                "Offloading manager delayed request %s as backend requested",
+                req_status.req.request_id,
+            )
+            return None
+
+        # possibly delay request if any of the hit blocks is already being loaded
+        if self._blocks_being_loaded:
+            for group_idx, (group_config, group_state) in enumerate(
+                zip(self.config.kv_group_configs, req_status.group_states)
+            ):
+                if group_idx not in self._loaded_group_indices or group_idx not in (
+                    req_status.lookup_groups or self._lookup_groups
+                ):
+                    continue
+                offloaded_block_size = group_config.offloaded_block_size
+                sliding_window_size_in_blocks = (
+                    group_config.sliding_window_size_in_blocks
+                )
+                offload_keys = group_state.offload_keys
+                num_blocks = cdiv(
+                    num_computed_tokens + num_hit_tokens, offloaded_block_size
+                )
+                load_from_zero = suffix_only and mixed_policy
+                lookup_start_tokens = 0 if load_from_zero else num_computed_tokens
+                start_block_idx = lookup_start_tokens // offloaded_block_size
+                offload_keys = offload_keys[start_block_idx:num_blocks]
+                if sliding_window_size_in_blocks is not None:
+                    offload_keys = offload_keys[-sliding_window_size_in_blocks:]
+                if any(key in self._blocks_being_loaded for key in offload_keys):
+                    # hit blocks are being loaded, delay request
+                    logger.debug(
+                        "Delaying request %s since some of its"
+                        " blocks are already being loaded",
+                        req_status.req.request_id,
+                    )
+                    return None
+
+        logger.debug(
+            "Request %s hit %s offloaded tokens after %s GPU hit tokens",
+            req_status.req.request_id,
+            num_hit_tokens,
+            num_computed_tokens,
+        )
+
+        return num_hit_tokens
+
+    def _independent_full_depth(self, req_status: RequestOffloadState) -> int | None:
+        """Deepest *contiguous* CPU Full-KV prefix, independent of Mamba hits."""
+        depths = []
+        for group_idx, spec in enumerate(self._group_specs):
+            if not isinstance(spec, FullAttentionSpec):
+                continue
+            group = self.config.kv_group_configs[group_idx]
+            keys = req_status.group_states[group_idx].offload_keys[
+                : (req_status.req.num_tokens - 1) // group.offloaded_block_size
+            ]
+            hit_blocks = self._maximal_prefix_lookup(keys, req_status.req_context)
+            if hit_blocks is None:
+                return None
+            depths.append(hit_blocks * group.offloaded_block_size)
+        return min(depths, default=0)
+
+    def on_new_request(self, request: Request) -> None:
+        """Called when a new request is added to the scheduler."""
+        req_context = _create_req_context(request)
+        offloading_context = self.manager.on_new_request(req_context)
+        req_status = RequestOffloadState(
+            config=self.config,
+            req=request,
+            req_context=req_context,
+            offloading_context=offloading_context,
+        )
+        self._req_status[request.request_id] = req_status
+
+    def get_num_new_matched_tokens(
+        self, request: Request, num_computed_tokens: int
+    ) -> tuple[int | None, bool]:
+        """
+        Get number of new tokens that can be loaded beyond the
+        num_computed_tokens.
+
+        Args:
+            request (Request): the request object.
+            num_computed_tokens (int): the number of locally
+                computed tokens for this request
+
+        Returns:
+            A tuple with the following elements:
+                - The number of tokens that can be loaded beyond what is
+                  already computed.
+                  If None, it means that the connector needs more time to
+                  determine the number of matched tokens, and the scheduler
+                  should query for this request again later.
+                - `True` if tokens will be loaded asynchronously
+                  (between scheduler steps).
+        """
+        req_status = self._req_status[request.request_id]
+        # The second load belongs to the *same* request. Keep the first
+        # phase's GPU block IDs so later stores retain their token indexing.
+        if request.hybrid_independent_stage != 1:
+            for group_state in req_status.group_states:
+                group_state.block_ids.clear()
+
+        req_status.update_offload_keys()
+        req_status.num_locally_computed_tokens = num_computed_tokens
+
+        independent = (
+            envs.VLLM_MOONCAKE_HYBRID_POLICY == "independent_full_kv"
+            and any(isinstance(s, MambaSpec) for s in self._group_specs)
+            and any(isinstance(s, FullAttentionSpec) for s in self._group_specs)
+        )
+        second_load = independent and request.hybrid_independent_stage == 1
+        req_status.lookup_groups = (
+            tuple(
+                i for i, spec in enumerate(self._group_specs)
+                if isinstance(spec, FullAttentionSpec)
+            )
+            if second_load
+            else None
+        )
+
+        num_hit_tokens = self._lookup(req_status)
+        if num_hit_tokens is None:
+            return None, False
+        if second_load:
+            if num_hit_tokens:
+                request.hybrid_local_tokens = num_computed_tokens
+                logger.info(
+                    "Hybrid independent request=%s state=%d FullKV=%d",
+                    request.request_id,
+                    num_computed_tokens,
+                    num_computed_tokens + num_hit_tokens,
+                )
+            else:
+                request.hybrid_independent_stage = 0
+                request.hybrid_independent_target_tokens = 0
+        elif independent and num_computed_tokens == 0 and num_hit_tokens:
+            full_depth = self._independent_full_depth(req_status)
+            if full_depth is None:
+                return None, False
+            if full_depth > num_hit_tokens:
+                request.hybrid_independent_target_tokens = full_depth
+        req_status.update_num_hit_blocks(num_computed_tokens + (num_hit_tokens or 0))
+
+        self._touch(req_status)
+
+        return num_hit_tokens, bool(num_hit_tokens)
+
+    def update_state_after_alloc(
+        self, request: Request, blocks: KVCacheBlocks, num_external_tokens: int
+    ):
+        if num_external_tokens == 0:
+            return
+
+        req_status = self._req_status[request.request_id]
+        if request.hybrid_independent_stage == 1:
+            request.hybrid_independent_stage = 2
+
+        num_locally_computed_tokens = req_status.num_locally_computed_tokens
+        num_cached_tokens = num_locally_computed_tokens + num_external_tokens
+
+        keys_to_load: list[OffloadKey] = []
+        dst_block_ids: list[int] = []
+        # per group
+        group_sizes: list[int] = []
+        block_indices: list[int] = []
+        for group_idx, (group_config, group_state, group_blocks) in enumerate(
+            zip(self.config.kv_group_configs, req_status.group_states, blocks.blocks)
+        ):
+            self._current_batch_allocated_block_ids.update(
+                block.block_id for block in group_blocks if block.block_id != 0
+            )
+
+            if group_idx not in self._loaded_group_indices or group_idx not in (
+                req_status.lookup_groups or self._lookup_groups
+            ):
+                # Keep the group position in GPULoadStoreSpec, but do not
+                # allocate/load any CPU block for a replay-only group.
+                group_sizes.append(0)
+                block_indices.append(0)
+                continue
+
+            gpu_block_size = group_config.gpu_block_size
+            offloaded_block_size = group_config.offloaded_block_size
+            offload_keys = group_state.offload_keys
+            num_gpu_blocks = cdiv(num_cached_tokens, gpu_block_size)
+
+            assert len(group_blocks) >= num_gpu_blocks
+            num_locally_computed_gpu_blocks = num_gpu_blocks
+            # Skip null placeholder blocks (used for sliding window or mamba padding).
+            for i, block in enumerate(group_blocks[:num_gpu_blocks]):
+                if not block.is_null and block.block_hash is None:
+                    num_locally_computed_gpu_blocks = i
+                    break
+
+            if num_locally_computed_tokens > (
+                num_locally_computed_gpu_blocks * gpu_block_size
+            ):
+                # Suffix-only hybrid recovery deliberately uses the replay
+                # group's GPU prefix as the scheduler boundary while the
+                # selected group is restored from CPU starting at block zero
+                # (Full KV or a single Linear/Mamba state).  That selected
+                # group has no local prefix blocks by design; its transfer is
+                # still valid and must not be rejected by the ordinary
+                # all-groups-local invariant.
+                suffix_only = envs.VLLM_MOONCAKE_HYBRID_SUFFIX_ONLY
+                mixed_policy = envs.VLLM_MOONCAKE_HYBRID_POLICY in {
+                    "full_load_linear_replay",
+                    "full_replay_linear_load",
+                }
+                if not (suffix_only and mixed_policy):
+                    raise AssertionError(
+                        "locally computed tokens exceed local GPU blocks"
+                    )
+                num_locally_computed_gpu_blocks = 0
+            num_pending_gpu_blocks = num_gpu_blocks - num_locally_computed_gpu_blocks
+
+            if group_config.sliding_window_size_in_blocks is not None:
+                assert (
+                    num_pending_gpu_blocks
+                    <= group_config.sliding_window_size_in_blocks
+                    * self.config.block_size_factor
+                )
+
+            num_blocks = cdiv(num_cached_tokens, offloaded_block_size)
+            assert len(offload_keys) >= num_blocks
+            if num_pending_gpu_blocks:
+                start_block_idx = (
+                    num_locally_computed_gpu_blocks // self.config.block_size_factor
+                )
+                keys_to_load.extend(offload_keys[start_block_idx:num_blocks])
+
+            dst_block_ids.extend(
+                block.block_id
+                for block in group_blocks[
+                    num_locally_computed_gpu_blocks:num_gpu_blocks
+                ]
+            )
+            group_sizes.append(num_pending_gpu_blocks)
+            block_indices.append(num_locally_computed_gpu_blocks)
+
+            # Skip prefix-hit blocks for block-level policy; for
+            # request-level, next_stored_block_idx stays at 0 so all
+            # blocks (including hits) are offloaded.
+            if req_status.offloading_context.policy == OffloadPolicy.BLOCK_LEVEL:
+                group_state.next_stored_block_idx = num_blocks
+
+        src_spec = self.manager.prepare_load(keys_to_load, req_status.req_context)
+        dst_spec = GPULoadStoreSpec(
+            dst_block_ids, group_sizes=group_sizes, block_indices=block_indices
+        )
+
+        load_job_id = self._generate_job_id()
+        self._current_batch_load_jobs[load_job_id] = TransferJob(
+            req_id=request.request_id,
+            transfer_spec=(src_spec, dst_spec),
+        )
+        # a load can only be issued when no other jobs are pending.
+        assert not req_status.transfer_jobs
+        req_status.transfer_jobs.add(load_job_id)
+        self._jobs[load_job_id] = TransferJobStatus(
+            req_id=request.request_id,
+            pending_count=self.config.num_workers,
+            keys=set(keys_to_load),
+            is_store=False,
+        )
+
+        if self._blocks_being_loaded is not None:
+            self._blocks_being_loaded.update(keys_to_load)
+
+    def _update_req_states(self, scheduler_output: SchedulerOutput) -> None:
+        """
+        Update request states from the Scheduler's output.
+        """
+
+        # new_block_ids_end[req_id][i] = end of pre-existing block_ids for
+        # the i-th sliding window group (before this step's extend).
+        # Used to detect sliding window blocks that got re-allocated.
+        new_block_ids_end: dict[str, tuple[int, ...]] = {}
+
+        for req_id, new_block_id_groups, preempted in yield_req_data(scheduler_output):
+            req_status = self._req_status[req_id]
+            req_status.update_offload_keys()
+
+            if preempted:
+                for group_state in req_status.group_states:
+                    group_state.block_ids.clear()
+
+            if new_block_id_groups:
+                if self._sliding_window_groups:
+                    new_block_ids_end[req_id] = tuple(
+                        len(req_status.group_states[grp_idx].block_ids)
+                        for grp_idx in self._sliding_window_groups
+                    )
+                req_status.update_block_id_groups(new_block_id_groups)
+                for new_blocks in new_block_id_groups:
+                    for bid in new_blocks:
+                        if bid != 0:
+                            self._current_batch_allocated_block_ids.add(bid)
+
+        # Zero out stale block_ids in sliding window groups' pending-store
+        # positions. Only sliding window groups can have stale entries (blocks
+        # freed by remove_skipped_blocks then reallocated). Only positions in
+        # [next_stored_block_idx * bsf, end) need checking where end is the
+        # pre-extend length: earlier positions were already offloaded, later
+        # ones are fresh allocations from this step.
+        if self._sliding_window_groups and self._current_batch_allocated_block_ids:
+            block_size_factor = self.config.block_size_factor
+            for req_id, req_status in self._req_status.items():
+                ends = new_block_ids_end.get(req_id)
+                for i, grp_idx in enumerate(self._sliding_window_groups):
+                    group_state = req_status.group_states[grp_idx]
+                    start = group_state.next_stored_block_idx * block_size_factor
+                    end = ends[i] if ends is not None else len(group_state.block_ids)
+                    for j in range(start, end):
+                        if (
+                            group_state.block_ids[j]
+                            in self._current_batch_allocated_block_ids
+                        ):
+                            group_state.block_ids[j] = 0
+
+    def _build_store_jobs(
+        self,
+        scheduler_output: SchedulerOutput,
+    ) -> dict[int, TransferJob]:
+        block_size_factor = self.config.block_size_factor
+        store_jobs: dict[int, TransferJob] = {}
+        for req_id in scheduler_output.num_scheduled_tokens:
+            req_status = self._req_status.get(req_id)
+            if req_status is None:
+                continue
+            req = req_status.req
+
+            num_scheduled_tokens = scheduler_output.num_scheduled_tokens[req_id]
+            num_tokens_after_batch = req.num_computed_tokens + num_scheduled_tokens
+            # with async scheduling, some tokens may be missing
+            num_offloadable_tokens = min(num_tokens_after_batch, req.num_tokens)
+            max_offload_tokens = req_status.max_offload_tokens
+            if max_offload_tokens is not None:
+                num_offloadable_tokens = min(num_offloadable_tokens, max_offload_tokens)
+
+            # Skip decode-phase blocks: clamp to the prompt length so only
+            # prefill (prompt) blocks become eligible for store. next_stored_idx
+            # never advances past this boundary, so decode blocks are never
+            # queued in this or any later step.
+            if self.config.offload_prompt_only:
+                num_offloadable_tokens = min(
+                    num_offloadable_tokens, req.num_prompt_tokens
+                )
+
+            # Filter out blocks skipped due to sliding window attention / SSM
+            # or unreachable by the load path's alignment constraints.
+            new_offload_keys: list[OffloadKey] = []
+            for group_idx, (group_config, group_state) in enumerate(
+                zip(self.config.kv_group_configs, req_status.group_states)
+            ):
+                if group_idx not in self._loaded_group_indices:
+                    continue
+                group_tokens = num_offloadable_tokens
+                if self._recurrent_store_cap and isinstance(
+                    self._group_specs[group_idx], MambaSpec
+                ):
+                    group_tokens = min(group_tokens, self._recurrent_store_cap)
+                num_blocks = group_tokens // group_config.offloaded_block_size
+                start_block_idx = group_state.next_stored_block_idx
+                if num_blocks <= start_block_idx:
+                    continue
+                offload_keys = group_state.offload_keys[start_block_idx:num_blocks]
+                # For each block to offload, take the last corresponding GPU block.
+                # e.g. if block size factor is 3 and GPU block IDs are
+                # 1 5 6 7 2 4 9 3 8 then we'll take blocks 6 4 8.
+                # A block_id of 0 means either a sliding window / SSM skip
+                # or a stale entry that was zeroed out — skip it either way.
+                offload_block_ids = group_state.block_ids[
+                    start_block_idx * block_size_factor
+                    + block_size_factor
+                    - 1 : num_blocks * block_size_factor : block_size_factor
+                ]
+                assert len(offload_keys) == len(offload_block_ids)
+
+                alignment_block_count = group_config.alignment_block_count
+                tail = group_config.sliding_window_size_in_blocks
+
+                for key_idx, (offload_key, block_id) in enumerate(
+                    zip(offload_keys, offload_block_ids)
+                ):
+                    if block_id == 0:
+                        continue
+                    # Skip SWA blocks that can never serve a load hit:
+                    # within each full-attention alignment segment, only the
+                    # trailing `tail` blocks are reachable by
+                    # _sliding_window_lookup. For DeepSeek V4 with 100K
+                    # tokens this reduces SWA stores by ~78%.
+                    if alignment_block_count is not None:
+                        assert tail is not None
+                        abs_block_idx = start_block_idx + key_idx
+                        pos_in_segment = abs_block_idx % alignment_block_count
+                        if pos_in_segment < alignment_block_count - tail:
+                            continue
+                    new_offload_keys.append(offload_key)
+
+            if not new_offload_keys:
+                req_status.advance_stored_idx(num_offloadable_tokens)
+                continue
+
+            store_output = self.manager.prepare_store(
+                new_offload_keys, req_status.req_context
+            )
+            if store_output is None:
+                logger.warning("Request %s: cannot store blocks", req_id)
+                continue
+
+            if not store_output.keys_to_store:
+                req_status.advance_stored_idx(num_offloadable_tokens)
+                continue
+
+            self._touch(req_status)
+
+            keys_to_store = set(store_output.keys_to_store)
+
+            group_sizes: list[int] = []
+            block_indices: list[int] = []
+            src_block_ids: list[int] = []
+            sliding_window_block_ids: list[int] = []
+            non_sliding_window_block_ids: list[int] = []
+            for group_idx, (group_config, group_state) in enumerate(
+                zip(self.config.kv_group_configs, req_status.group_states)
+            ):
+                if group_idx not in self._loaded_group_indices:
+                    group_sizes.append(0)
+                    block_indices.append(0)
+                    continue
+                is_sliding_window = (
+                    group_config.sliding_window_size_in_blocks is not None
+                )
+                group_tokens = num_offloadable_tokens
+                if self._recurrent_store_cap and isinstance(
+                    self._group_specs[group_idx], MambaSpec
+                ):
+                    group_tokens = min(group_tokens, self._recurrent_store_cap)
+                num_blocks = group_tokens // group_config.offloaded_block_size
+                start_block_idx = group_state.next_stored_block_idx
+                block_ids = group_state.block_ids
+                num_group_blocks = 0
+                start_gpu_block_idx: int | None = None
+                for idx, offload_key in enumerate(
+                    group_state.offload_keys[start_block_idx:num_blocks]
+                ):
+                    if offload_key not in keys_to_store:
+                        continue
+
+                    offloaded_block_idx = start_block_idx + idx
+                    gpu_block_idx = offloaded_block_idx * block_size_factor
+                    for i in range(block_size_factor):
+                        block_id = block_ids[gpu_block_idx + i]
+                        if block_id == 0:
+                            continue
+                        if start_gpu_block_idx is None:
+                            start_gpu_block_idx = gpu_block_idx + i
+                        src_block_ids.append(block_id)
+                        num_group_blocks += 1
+                        if is_sliding_window:
+                            sliding_window_block_ids.append(block_id)
+                        else:
+                            non_sliding_window_block_ids.append(block_id)
+
+                group_sizes.append(num_group_blocks)
+                block_indices.append(start_gpu_block_idx or 0)
+                group_state.next_stored_block_idx = num_blocks
+
+            src_spec = GPULoadStoreSpec(
+                src_block_ids, group_sizes=group_sizes, block_indices=block_indices
+            )
+            dst_spec = store_output.store_spec
+
+            job_id = self._generate_job_id()
+            # a store can only be issued when no load is pending.
+            if req_status.transfer_jobs:
+                any_jid = next(iter(req_status.transfer_jobs))
+                assert self._jobs[any_jid].is_store
+            req_status.transfer_jobs.add(job_id)
+
+            # Watch sliding window blocks as they may get evicted
+            # before the request finishes
+            for bid in sliding_window_block_ids or ():
+                self._block_id_to_pending_jobs.setdefault(bid, set()).add(job_id)
+
+            # the non-sliding window blocks will be watched only
+            # when the request finishes
+            self._jobs[job_id] = TransferJobStatus(
+                req_id=req_id,
+                pending_count=self.config.num_workers,
+                keys=set(keys_to_store),
+                is_store=True,
+                non_sliding_window_block_ids=non_sliding_window_block_ids,
+                sliding_window_block_ids=sliding_window_block_ids or None,
+            )
+
+            store_jobs[job_id] = TransferJob(
+                req_id=req_id, transfer_spec=(src_spec, dst_spec)
+            )
+
+            logger.debug(
+                "Request %s offloading %s blocks upto %d tokens (job %d)",
+                req_id,
+                len(keys_to_store),
+                num_offloadable_tokens,
+                job_id,
+            )
+
+        return store_jobs
+
+    def build_connector_meta(
+        self, scheduler_output: SchedulerOutput
+    ) -> KVConnectorMetadata:
+        self._update_req_states(scheduler_output)
+        self.manager.on_schedule_end()
+
+        # Flush jobs for preempted requests.
+        for req_id in scheduler_output.preempted_req_ids or ():
+            req_status = self._req_status.get(req_id)
+            if req_status is None or not req_status.transfer_jobs:
+                continue
+            any_jid = next(iter(req_status.transfer_jobs))
+            assert self._jobs[any_jid].is_store
+            self._current_batch_jobs_to_flush.update(req_status.transfer_jobs)
+
+        # Flush jobs that contain re-allocated blocks.
+        if (
+            self._block_id_to_pending_jobs
+            and not self._block_id_to_pending_jobs.keys().isdisjoint(
+                self._current_batch_allocated_block_ids
+            )
+        ):
+            self._current_batch_jobs_to_flush.update(
+                jid
+                for bid in self._current_batch_allocated_block_ids
+                if bid in self._block_id_to_pending_jobs
+                for jid in self._block_id_to_pending_jobs[bid]
+            )
+
+        # If all tracked requests are finished, flush all pending jobs
+        # (both store and load) - there might not be a future scheduler
+        # step to trigger their completion.
+        if self._req_status and all(
+            rs.req.is_finished() for rs in self._req_status.values()
+        ):
+            self._current_batch_jobs_to_flush.update(self._jobs.keys())
+
+        meta = OffloadingConnectorMetadata(
+            load_jobs=self._current_batch_load_jobs,
+            store_jobs=self._build_store_jobs(scheduler_output),
+            jobs_to_flush=self._current_batch_jobs_to_flush,
+        )
+        self._current_batch_load_jobs = {}
+        self._current_batch_jobs_to_flush = set()
+        self._current_batch_allocated_block_ids = set()
+        return meta
+
+    def update_connector_output(self, connector_output: KVConnectorOutput):
+        """
+        Update KVConnector state from worker-side connectors output.
+
+        Args:
+            connector_output (KVConnectorOutput): the worker-side
+                connectors output.
+        """
+        meta = connector_output.kv_connector_worker_meta
+        if not isinstance(meta, OffloadingWorkerMetadata):
+            assert meta is None
+            meta = OffloadingWorkerMetadata()
+        for job_id, count in meta.completed_jobs.items():
+            assert count > 0
+            if job_id < self._stale_job_threshold:
+                logger.debug(
+                    "Skipping stale completed job %d (pre-reset counter: %d)",
+                    job_id,
+                    self._stale_job_threshold,
+                )
+                continue
+            job_status = self._jobs[job_id]
+            job_status.pending_count -= count
+            if job_status.pending_count > 0:
+                continue
+            assert job_status.pending_count == 0
+
+            req_status = self._req_status[job_status.req_id]
+            if job_status.is_store:
+                self.manager.complete_store(job_status.keys, req_status.req_context)
+            else:
+                self.manager.complete_load(job_status.keys, req_status.req_context)
+                if self._blocks_being_loaded:
+                    self._blocks_being_loaded.difference_update(job_status.keys)
+            if self._block_id_to_pending_jobs:
+                # Sliding window blocks are tracked from store creation
+                # and must be cleaned up unconditionally.
+                self._remove_pending_job(job_id, job_status.sliding_window_block_ids)
+                # Non-sliding-window blocks are only tracked after
+                # request_finished, so only clean up for finished requests.
+                if req_status.req.is_finished():
+                    self._remove_pending_job(
+                        job_id, job_status.non_sliding_window_block_ids
+                    )
+
+            del self._jobs[job_id]
+            req_status.transfer_jobs.remove(job_id)
+            if not req_status.transfer_jobs and req_status.req.is_finished():
+                del self._req_status[job_status.req_id]
+
+    def request_finished(
+        self,
+        request: Request,
+    ) -> tuple[bool, dict[str, Any] | None]:
+        """
+        Called when a request has finished, before its blocks are freed.
+
+        Returns:
+            True if the request is being saved/sent asynchronously and blocks
+            should not be freed until the request_id is returned from
+            get_finished().
+            Optional KVTransferParams to be included in the request outputs
+            returned by the engine.
+        """
+        # TODO(orozery): possibly kickoff offload for last block
+        # which may have been deferred due to async scheduling
+        req_status = self._req_status.get(request.request_id)
+
+        req_context = (
+            req_status.req_context if req_status else _create_req_context(request)
+        )
+        self.manager.on_request_finished(req_context)
+
+        if req_status is None:
+            return False, None
+        if not req_status.transfer_jobs:
+            del self._req_status[request.request_id]
+            return False, None
+        # Pending stores will outlive the request's block ownership.
+        # Register them so future block reuse triggers a flush.
+        for job_id in req_status.transfer_jobs:
+            job_status = self._jobs[job_id]
+            for bid in job_status.non_sliding_window_block_ids or ():
+                self._block_id_to_pending_jobs.setdefault(bid, set()).add(job_id)
+        return False, None
+
+    def take_events(self) -> Iterable[KVCacheEvent]:
+        """Take the KV cache events from the connector.
+
+        Returns:
+            A list of KV cache events.
+        """
+        for event in self.manager.take_events():
+            block_hashes = [get_offload_block_hash(key) for key in event.keys]
+            if event.removed:
+                yield BlockRemoved(block_hashes=block_hashes, medium=event.medium)
+            else:
+                yield BlockStored(
+                    block_hashes=block_hashes,
+                    parent_block_hash=None,
+                    token_ids=[],
+                    lora_id=None,
+                    block_size=0,
+                    medium=event.medium,
+                    lora_name=None,
+                )
+
+    def reset_cache(self) -> None:
+        """Reset the offloading manager cache, evicting all stored blocks."""
+
+        # reset_cache cannot be called in the middle of a schedule step
+        assert not self._current_batch_load_jobs
+        assert not self._current_batch_jobs_to_flush
+        assert not self._current_batch_allocated_block_ids
+
+        # Flush all in-flight jobs
+        self._current_batch_jobs_to_flush.update(self._jobs.keys())
+
+        # Reset offloading manager cache
+        self.manager.reset_cache()
+
+        # Reset store progress so active requests re-offload from block 0
+        for status in self._req_status.values():
+            for group_state in status.group_states:
+                group_state.next_stored_block_idx = 0
+
+        # Discard jobs and save job_counter to be able to discard worker responses
+        self._stale_job_threshold = self._job_counter
+        self._jobs.clear()
+        self._block_id_to_pending_jobs.clear()
+
+        # Note: _current_batch_jobs_to_flush is intentionally NOT cleared.
+        # The load flush IDs collected above must be delivered to workers.
+        if self._blocks_being_loaded is not None:
+            self._blocks_being_loaded.clear()
+
+    def shutdown(self) -> None:
+        self.manager.shutdown()

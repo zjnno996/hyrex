@@ -1,0 +1,2 @@
+{"arrival_index": 0, "session_id": "Ud3L2sd_124", "turn_index": 0, "prompt_tokens": 651, "cached_tokens": 0, "completion_tokens": 1, "elapsed_ms": 200.27, "ttft_ms": 200.1, "first_text": " "}
+{"arrival_index": 1, "session_id": "Ud3L2sd_124", "turn_index": 1, "prompt_tokens": 732, "cached_tokens": 640, "completion_tokens": 1, "elapsed_ms": 198.67, "ttft_ms": 198.42, "first_text": " "}

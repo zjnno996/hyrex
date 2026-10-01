@@ -1,0 +1,16 @@
+{
+  "short_tail": {
+    "requests": 40,
+    "correctness_passed": true,
+    "formal_jit_warnings": 0,
+    "mean_ttft_ms": 169.35375,
+    "continuation_mean_ttft_ms": 167.6625
+  },
+  "control": {
+    "requests": 40,
+    "correctness_passed": true,
+    "formal_jit_warnings": 0,
+    "mean_ttft_ms": 181.93275,
+    "continuation_mean_ttft_ms": 180.87916666666666
+  }
+}

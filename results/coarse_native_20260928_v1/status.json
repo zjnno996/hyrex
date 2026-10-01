@@ -1,0 +1,1 @@
+{"state": "terminated_by_user", "arm": "smoke", "pid": 1506227, "processes_exited": true, "inference_requests_completed": 0, "reason": "User requested termination during I/O-blocked startup; logs preserved."}

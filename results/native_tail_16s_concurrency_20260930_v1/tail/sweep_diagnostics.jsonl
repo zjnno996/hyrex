@@ -1,0 +1,3 @@
+{"concurrency": 4, "measured_wall_ms": 75415.94, "formal_jit_warnings": 0}
+{"concurrency": 8, "measured_wall_ms": 43716.36, "formal_jit_warnings": 0}
+{"concurrency": 16, "measured_wall_ms": 29643.78, "formal_jit_warnings": 0}

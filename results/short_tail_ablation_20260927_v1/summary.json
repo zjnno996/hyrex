@@ -1,0 +1,23 @@
+{
+  "smoke": {
+    "requests": 2,
+    "correctness_passed": true,
+    "formal_jit_warnings": 0,
+    "mean_ttft_ms": 221.62,
+    "continuation_mean_ttft_ms": 209.55
+  },
+  "control": {
+    "requests": 40,
+    "correctness_passed": true,
+    "formal_jit_warnings": 0,
+    "mean_ttft_ms": 181.273,
+    "continuation_mean_ttft_ms": 179.43027777777777
+  },
+  "short_tail": {
+    "requests": 40,
+    "correctness_passed": true,
+    "formal_jit_warnings": 0,
+    "mean_ttft_ms": 159.294,
+    "continuation_mean_ttft_ms": 157.14944444444444
+  }
+}

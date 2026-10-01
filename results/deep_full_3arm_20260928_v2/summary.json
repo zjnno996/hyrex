@@ -1,0 +1,8 @@
+{
+  "smoke_old": {
+    "requests": 8,
+    "checks_passed": true,
+    "mean_ttft_ms": 250.86875,
+    "continuation_mean_ttft_ms": 271.315
+  }
+}

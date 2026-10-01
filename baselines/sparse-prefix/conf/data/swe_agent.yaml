@@ -1,0 +1,10 @@
+defaults:
+  - base
+  - _self_
+
+_target_: spase_cache.datasets.agentic.SweAgentDataset
+name: swe_agent
+format: revision
+processed: data/swe_agent_${run_name}.parquet
+max_sessions: 5000
+split: train

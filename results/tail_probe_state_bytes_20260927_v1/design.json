@@ -1,0 +1,11 @@
+{
+  "arm": "tail_no_new_states",
+  "diagnostic_byte_audit": true,
+  "audit_scope": "opaque recurrent state D2H and H2D; Full KV audit not enabled in this run",
+  "seed_tokens": 1054,
+  "resume_tokens": 1191,
+  "exact_shared_tokens": 1054,
+  "tail_boundary": 1040,
+  "coarse_boundary": 528,
+  "selection": "mechanism probe: near-full 528-token tail, not representative average"
+}

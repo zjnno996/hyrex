@@ -1,0 +1,18 @@
+{
+  "commits": {
+    "/root/exp-vllm-pristine-3way": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+    "/root/exp-lmcache-pristine-3way": "140819c9d57a975dbc5678a6459a218e544cb58b",
+    "/root/exp-vllm-single-forward": "cd2977fc04e0ab36656f964dccc6986833b01706",
+    "/root/exp-lmcache-single-forward": "7a832182564f609bf52f3ab505dbcd58ac0cfa27"
+  },
+  "sessions": 4,
+  "turns": 10,
+  "repetitions": 3,
+  "baseline_budget": 528,
+  "experimental_budget": 2048,
+  "budget_difference": "Native LMCache requires [528,1056); only experimental in-layer snapshots lift this restriction. This is a combined-method comparison, not an equal-budget ablation.",
+  "output_tokens": 1,
+  "warmup_output_tokens": 32,
+  "reset": "GPU reset between every request, CPU retained; both cleared between repetitions",
+  "correctness_scope": "Every first text compared to native; separate 32-token smoke required before launch"
+}

@@ -1,0 +1,108 @@
+%%% -*-BibTeX-*-
+%%% Do NOT edit. File created by BibTeX with style
+%%% ACM-Reference-Format-Journals [18-Jan-2012].
+
+\begin{thebibliography}{5}
+
+%%% ====================================================================
+%%% NOTE TO THE USER: you can override these defaults by providing
+%%% customized versions of any of these macros before the \bibliography
+%%% command.  Each of them MUST provide its own final punctuation,
+%%% except for \shownote{} and \showURL{}.  The latter two
+%%% do not use final punctuation, in order to avoid confusing it with
+%%% the Web address.
+%%%
+%%% To suppress output of a particular field, define its macro to expand
+%%% to an empty string, or better, \unskip, like this:
+%%%
+%%% \newcommand{\showURL}[1]{\unskip}   % LaTeX syntax
+%%%
+%%% \def \showURL #1{\unskip}           % plain TeX syntax
+%%%
+%%% ====================================================================
+
+\ifx \showCODEN    \undefined \def \showCODEN     #1{\unskip}     \fi
+\ifx \showISBNx    \undefined \def \showISBNx     #1{\unskip}     \fi
+\ifx \showISBNxiii \undefined \def \showISBNxiii  #1{\unskip}     \fi
+\ifx \showISSN     \undefined \def \showISSN      #1{\unskip}     \fi
+\ifx \showLCCN     \undefined \def \showLCCN      #1{\unskip}     \fi
+\ifx \shownote     \undefined \def \shownote      #1{#1}          \fi
+\ifx \showarticletitle \undefined \def \showarticletitle #1{#1}   \fi
+\ifx \showURL      \undefined \def \showURL       {\relax}        \fi
+% The following commands are used for tagged output and should be
+% invisible to TeX
+\providecommand\bibfield[2]{#2}
+\providecommand\bibinfo[2]{#2}
+\providecommand\natexlab[1]{#1}
+\providecommand\showeprint[2][]{arXiv:#2}
+
+\bibitem[Cheng et~al\mbox{.}(2025)]%
+        {cheng2025lmcache}
+\bibfield{author}{\bibinfo{person}{Yihua Cheng}, \bibinfo{person}{Yuhan Liu},
+  \bibinfo{person}{Jiayi Yao}, \bibinfo{person}{Yuwei An},
+  \bibinfo{person}{Xiaokun Chen}, \bibinfo{person}{Shaoting Feng},
+  \bibinfo{person}{Yuyang Huang}, \bibinfo{person}{Samuel Shen},
+  \bibinfo{person}{Kuntai Du}, {and} \bibinfo{person}{Junchen Jiang}.}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{{LMCache}: An Efficient {KV} Cache Layer for
+  Enterprise-Scale {LLM} Inference}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2510.09665}}
+  (\bibinfo{year}{2025}).
+\newblock
+
+
+\bibitem[Gu and Dao(2024)]%
+        {gu2024mamba}
+\bibfield{author}{\bibinfo{person}{Albert Gu} {and} \bibinfo{person}{Tri Dao}.}
+  \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Mamba: Linear-Time Sequence Modeling with Selective
+  State Spaces}. In \bibinfo{booktitle}{\emph{First Conference on Language
+  Modeling}}.
+\newblock
+
+
+\bibitem[Kwon et~al\mbox{.}(2023)]%
+        {kwon2023vllm}
+\bibfield{author}{\bibinfo{person}{Woosuk Kwon}, \bibinfo{person}{Zhuohan Li},
+  \bibinfo{person}{Siyuan Zhuang}, \bibinfo{person}{Ying Sheng},
+  \bibinfo{person}{Lianmin Zheng}, \bibinfo{person}{Cody~Hao Yu},
+  \bibinfo{person}{Joseph~E. Gonzalez}, \bibinfo{person}{Hao Zhang}, {and}
+  \bibinfo{person}{Ion Stoica}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Efficient Memory Management for Large Language
+  Model Serving with {PagedAttention}}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 29th Symposium on Operating
+  Systems Principles}}. \bibinfo{pages}{611--626}.
+\newblock
+\href{https://doi.org/10.1145/3600006.3613165}{doi:\nolinkurl{10.1145/3600006.3613165}}
+
+
+\bibitem[Pan et~al\mbox{.}(2025)]%
+        {pan2025marconi}
+\bibfield{author}{\bibinfo{person}{Rui Pan}, \bibinfo{person}{Zhuang Wang},
+  \bibinfo{person}{Zhen Jia}, \bibinfo{person}{Can Karakus},
+  \bibinfo{person}{Luca Zancato}, \bibinfo{person}{Tri Dao},
+  \bibinfo{person}{Yida Wang}, {and} \bibinfo{person}{Ravi Netravali}.}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Marconi: Prefix Caching for the Era of Hybrid
+  {LLM}s}. In \bibinfo{booktitle}{\emph{Proceedings of Machine Learning and
+  Systems}}, Vol.~\bibinfo{volume}{7}.
+\newblock
+
+
+\bibitem[Zheng et~al\mbox{.}(2024)]%
+        {zheng2024sglang}
+\bibfield{author}{\bibinfo{person}{Lianmin Zheng}, \bibinfo{person}{Liangsheng
+  Yin}, \bibinfo{person}{Zhiqiang Xie}, \bibinfo{person}{Chuyue Sun},
+  \bibinfo{person}{Jeff Huang}, \bibinfo{person}{Cody~Hao Yu},
+  \bibinfo{person}{Shiyi Cao}, \bibinfo{person}{Christos Kozyrakis},
+  \bibinfo{person}{Ion Stoica}, \bibinfo{person}{Joseph~E. Gonzalez},
+  \bibinfo{person}{Clark Barrett}, {and} \bibinfo{person}{Ying Sheng}.}
+  \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{{SGLang}: Efficient Execution of Structured
+  Language Model Programs}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2312.07104}}
+  (\bibinfo{year}{2024}).
+\newblock
+
+
+\end{thebibliography}

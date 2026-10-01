@@ -1,0 +1,13 @@
+{
+  "status": "startup_failure",
+  "vllm_source_commit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+  "lmcache_version": "0.5.3",
+  "model": "/root/models/Qwen3.5-9B",
+  "dtype": "bfloat16",
+  "gpu": "RTX 4090",
+  "disable_hybrid_kv_cache_manager": true,
+  "runtime_attention_block_tokens": 528,
+  "runtime_alignment_message": "Setting attention block size to 528 tokens to ensure that attention page size is >= mamba page size.",
+  "failure": "Hybrid KV cache manager is disabled but failed to convert the KV cache specs to one unified type.",
+  "requests_served": 0
+}

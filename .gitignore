@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.so
+*.o
+.venv/
+.cache/
+build/
+dist/
+*.safetensors
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out

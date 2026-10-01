@@ -1,0 +1,14 @@
+{
+  "gpu": 2,
+  "tokens": 1056,
+  "full_attention_layers": 8,
+  "payload_mib": 33.0,
+  "warmup_per_variant": 3,
+  "repeats": 10,
+  "measurement": "host wall time through CUDA synchronize; transfer only, not TTFT",
+  "results": [
+    {"variant": "coarse_528", "median_ms": 2.332204720005393, "bitwise_correct": true},
+    {"variant": "fine_16", "median_ms": 18.75311485491693, "bitwise_correct": true},
+    {"variant": "fine_16_bulk_scatter", "median_ms": 1.853002468124032, "bitwise_correct": true}
+  ]
+}

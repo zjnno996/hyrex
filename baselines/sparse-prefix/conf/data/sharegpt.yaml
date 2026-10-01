@@ -1,0 +1,11 @@
+defaults:
+  - base
+  - _self_
+
+_target_: spase_cache.datasets.sharegpt.ShareGPTDataset
+name: sharegpt
+format: conversation
+raw_path: data/chatgpt_results_final_language_filtered.csv
+processed: data/sharegpt_${run_name}.parquet
+max_rounds: 36
+max_rows: 1000000

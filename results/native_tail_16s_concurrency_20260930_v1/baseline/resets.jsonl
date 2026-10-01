@@ -1,0 +1,56 @@
+{"wave_index": 0, "sweep_wave_index": 0, "concurrency": 4, "arrival_indices": [0, 5, 11, 18], "attempts": 1, "reset_wait_ms": 6.31, "success": true}
+{"wave_index": 1, "sweep_wave_index": 1, "concurrency": 4, "arrival_indices": [26, 35, 45, 50], "attempts": 1, "reset_wait_ms": 6.95, "success": true}
+{"wave_index": 2, "sweep_wave_index": 2, "concurrency": 4, "arrival_indices": [56, 63, 71, 80], "attempts": 1, "reset_wait_ms": 7.44, "success": true}
+{"wave_index": 3, "sweep_wave_index": 3, "concurrency": 4, "arrival_indices": [90, 96, 103, 111], "attempts": 1, "reset_wait_ms": 7.39, "success": true}
+{"wave_index": 4, "sweep_wave_index": 4, "concurrency": 4, "arrival_indices": [1, 6, 12, 19], "attempts": 1, "reset_wait_ms": 6.09, "success": true}
+{"wave_index": 5, "sweep_wave_index": 5, "concurrency": 4, "arrival_indices": [27, 36, 46, 51], "attempts": 1, "reset_wait_ms": 6.92, "success": true}
+{"wave_index": 6, "sweep_wave_index": 6, "concurrency": 4, "arrival_indices": [57, 64, 72, 81], "attempts": 1, "reset_wait_ms": 6.13, "success": true}
+{"wave_index": 7, "sweep_wave_index": 7, "concurrency": 4, "arrival_indices": [91, 97, 104, 112], "attempts": 1, "reset_wait_ms": 5.63, "success": true}
+{"wave_index": 8, "sweep_wave_index": 8, "concurrency": 4, "arrival_indices": [2, 7, 13, 20], "attempts": 1, "reset_wait_ms": 6.45, "success": true}
+{"wave_index": 9, "sweep_wave_index": 9, "concurrency": 4, "arrival_indices": [28, 37, 47, 52], "attempts": 1, "reset_wait_ms": 5.41, "success": true}
+{"wave_index": 10, "sweep_wave_index": 10, "concurrency": 4, "arrival_indices": [58, 65, 73, 82], "attempts": 1, "reset_wait_ms": 7.5, "success": true}
+{"wave_index": 11, "sweep_wave_index": 11, "concurrency": 4, "arrival_indices": [92, 98, 105, 113], "attempts": 1, "reset_wait_ms": 6.09, "success": true}
+{"wave_index": 12, "sweep_wave_index": 12, "concurrency": 4, "arrival_indices": [3, 8, 14, 21], "attempts": 1, "reset_wait_ms": 7.2, "success": true}
+{"wave_index": 13, "sweep_wave_index": 13, "concurrency": 4, "arrival_indices": [29, 38, 48, 53], "attempts": 1, "reset_wait_ms": 6.89, "success": true}
+{"wave_index": 14, "sweep_wave_index": 14, "concurrency": 4, "arrival_indices": [59, 66, 74, 83], "attempts": 1, "reset_wait_ms": 5.11, "success": true}
+{"wave_index": 15, "sweep_wave_index": 15, "concurrency": 4, "arrival_indices": [93, 99, 106, 114], "attempts": 1, "reset_wait_ms": 7.01, "success": true}
+{"wave_index": 16, "sweep_wave_index": 16, "concurrency": 4, "arrival_indices": [4, 9, 15, 22], "attempts": 1, "reset_wait_ms": 6.98, "success": true}
+{"wave_index": 17, "sweep_wave_index": 17, "concurrency": 4, "arrival_indices": [30, 39, 49, 54], "attempts": 1, "reset_wait_ms": 5.91, "success": true}
+{"wave_index": 18, "sweep_wave_index": 18, "concurrency": 4, "arrival_indices": [60, 67, 75, 84], "attempts": 1, "reset_wait_ms": 5.43, "success": true}
+{"wave_index": 19, "sweep_wave_index": 19, "concurrency": 4, "arrival_indices": [94, 100, 107, 115], "attempts": 1, "reset_wait_ms": 5.37, "success": true}
+{"wave_index": 20, "sweep_wave_index": 20, "concurrency": 4, "arrival_indices": [10, 16, 23, 31], "attempts": 1, "reset_wait_ms": 6.89, "success": true}
+{"wave_index": 21, "sweep_wave_index": 21, "concurrency": 4, "arrival_indices": [40, 55, 61, 68], "attempts": 1, "reset_wait_ms": 5.12, "success": true}
+{"wave_index": 22, "sweep_wave_index": 22, "concurrency": 4, "arrival_indices": [76, 85, 95, 101], "attempts": 1, "reset_wait_ms": 6.7, "success": true}
+{"wave_index": 23, "sweep_wave_index": 23, "concurrency": 4, "arrival_indices": [108, 116], "attempts": 1, "reset_wait_ms": 5.71, "success": true}
+{"wave_index": 24, "sweep_wave_index": 24, "concurrency": 4, "arrival_indices": [17, 24, 32, 41], "attempts": 1, "reset_wait_ms": 6.52, "success": true}
+{"wave_index": 25, "sweep_wave_index": 25, "concurrency": 4, "arrival_indices": [62, 69, 77, 86], "attempts": 1, "reset_wait_ms": 7.42, "success": true}
+{"wave_index": 26, "sweep_wave_index": 26, "concurrency": 4, "arrival_indices": [102, 109, 117], "attempts": 1, "reset_wait_ms": 6.45, "success": true}
+{"wave_index": 27, "sweep_wave_index": 27, "concurrency": 4, "arrival_indices": [25, 33, 42, 70], "attempts": 1, "reset_wait_ms": 6.37, "success": true}
+{"wave_index": 28, "sweep_wave_index": 28, "concurrency": 4, "arrival_indices": [78, 87, 110, 118], "attempts": 1, "reset_wait_ms": 5.88, "success": true}
+{"wave_index": 29, "sweep_wave_index": 29, "concurrency": 4, "arrival_indices": [34, 43, 79, 88], "attempts": 1, "reset_wait_ms": 7.17, "success": true}
+{"wave_index": 30, "sweep_wave_index": 30, "concurrency": 4, "arrival_indices": [119], "attempts": 1, "reset_wait_ms": 7.33, "success": true}
+{"wave_index": 32, "sweep_wave_index": 0, "concurrency": 8, "arrival_indices": [0, 5, 11, 18, 26, 35, 45, 50], "attempts": 1, "reset_wait_ms": 7.07, "success": true}
+{"wave_index": 33, "sweep_wave_index": 1, "concurrency": 8, "arrival_indices": [56, 63, 71, 80, 90, 96, 103, 111], "attempts": 1, "reset_wait_ms": 6.66, "success": true}
+{"wave_index": 34, "sweep_wave_index": 2, "concurrency": 8, "arrival_indices": [1, 6, 12, 19, 27, 36, 46, 51], "attempts": 1, "reset_wait_ms": 6.75, "success": true}
+{"wave_index": 35, "sweep_wave_index": 3, "concurrency": 8, "arrival_indices": [57, 64, 72, 81, 91, 97, 104, 112], "attempts": 1, "reset_wait_ms": 7.47, "success": true}
+{"wave_index": 36, "sweep_wave_index": 4, "concurrency": 8, "arrival_indices": [2, 7, 13, 20, 28, 37, 47, 52], "attempts": 1, "reset_wait_ms": 7.71, "success": true}
+{"wave_index": 37, "sweep_wave_index": 5, "concurrency": 8, "arrival_indices": [58, 65, 73, 82, 92, 98, 105, 113], "attempts": 1, "reset_wait_ms": 6.45, "success": true}
+{"wave_index": 38, "sweep_wave_index": 6, "concurrency": 8, "arrival_indices": [3, 8, 14, 21, 29, 38, 48, 53], "attempts": 1, "reset_wait_ms": 5.39, "success": true}
+{"wave_index": 39, "sweep_wave_index": 7, "concurrency": 8, "arrival_indices": [59, 66, 74, 83, 93, 99, 106, 114], "attempts": 1, "reset_wait_ms": 7.21, "success": true}
+{"wave_index": 40, "sweep_wave_index": 8, "concurrency": 8, "arrival_indices": [4, 9, 15, 22, 30, 39, 49, 54], "attempts": 1, "reset_wait_ms": 7.65, "success": true}
+{"wave_index": 41, "sweep_wave_index": 9, "concurrency": 8, "arrival_indices": [60, 67, 75, 84, 94, 100, 107, 115], "attempts": 1, "reset_wait_ms": 6.77, "success": true}
+{"wave_index": 42, "sweep_wave_index": 10, "concurrency": 8, "arrival_indices": [10, 16, 23, 31, 40, 55, 61, 68], "attempts": 1, "reset_wait_ms": 7.18, "success": true}
+{"wave_index": 43, "sweep_wave_index": 11, "concurrency": 8, "arrival_indices": [76, 85, 95, 101, 108, 116], "attempts": 1, "reset_wait_ms": 5.91, "success": true}
+{"wave_index": 44, "sweep_wave_index": 12, "concurrency": 8, "arrival_indices": [17, 24, 32, 41, 62, 69, 77, 86], "attempts": 1, "reset_wait_ms": 3.69, "success": true}
+{"wave_index": 45, "sweep_wave_index": 13, "concurrency": 8, "arrival_indices": [102, 109, 117], "attempts": 1, "reset_wait_ms": 6.42, "success": true}
+{"wave_index": 46, "sweep_wave_index": 14, "concurrency": 8, "arrival_indices": [25, 33, 42, 70, 78, 87, 110, 118], "attempts": 1, "reset_wait_ms": 6.97, "success": true}
+{"wave_index": 47, "sweep_wave_index": 15, "concurrency": 8, "arrival_indices": [34, 43, 79, 88, 119], "attempts": 1, "reset_wait_ms": 6.51, "success": true}
+{"wave_index": 49, "sweep_wave_index": 0, "concurrency": 16, "arrival_indices": [0, 5, 11, 18, 26, 35, 45, 50, 56, 63, 71, 80, 90, 96, 103, 111], "attempts": 1, "reset_wait_ms": 6.94, "success": true}
+{"wave_index": 50, "sweep_wave_index": 1, "concurrency": 16, "arrival_indices": [1, 6, 12, 19, 27, 36, 46, 51, 57, 64, 72, 81, 91, 97, 104, 112], "attempts": 1, "reset_wait_ms": 6.94, "success": true}
+{"wave_index": 51, "sweep_wave_index": 2, "concurrency": 16, "arrival_indices": [2, 7, 13, 20, 28, 37, 47, 52, 58, 65, 73, 82, 92, 98, 105, 113], "attempts": 1, "reset_wait_ms": 4.97, "success": true}
+{"wave_index": 52, "sweep_wave_index": 3, "concurrency": 16, "arrival_indices": [3, 8, 14, 21, 29, 38, 48, 53, 59, 66, 74, 83, 93, 99, 106, 114], "attempts": 1, "reset_wait_ms": 5.22, "success": true}
+{"wave_index": 53, "sweep_wave_index": 4, "concurrency": 16, "arrival_indices": [4, 9, 15, 22, 30, 39, 49, 54, 60, 67, 75, 84, 94, 100, 107, 115], "attempts": 1, "reset_wait_ms": 6.95, "success": true}
+{"wave_index": 54, "sweep_wave_index": 5, "concurrency": 16, "arrival_indices": [10, 16, 23, 31, 40, 55, 61, 68, 76, 85, 95, 101, 108, 116], "attempts": 1, "reset_wait_ms": 7.47, "success": true}
+{"wave_index": 55, "sweep_wave_index": 6, "concurrency": 16, "arrival_indices": [17, 24, 32, 41, 62, 69, 77, 86, 102, 109, 117], "attempts": 1, "reset_wait_ms": 7.81, "success": true}
+{"wave_index": 56, "sweep_wave_index": 7, "concurrency": 16, "arrival_indices": [25, 33, 42, 70, 78, 87, 110, 118], "attempts": 1, "reset_wait_ms": 8.49, "success": true}
+{"wave_index": 57, "sweep_wave_index": 8, "concurrency": 16, "arrival_indices": [34, 43, 79, 88, 119], "attempts": 1, "reset_wait_ms": 7.52, "success": true}

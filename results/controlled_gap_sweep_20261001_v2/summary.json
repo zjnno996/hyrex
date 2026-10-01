@@ -1,0 +1,516 @@
+{
+  "design": {
+    "model": "Qwen3.5-9B BF16 eager",
+    "gaps": [
+      0,
+      64,
+      128,
+      256,
+      384,
+      512
+    ],
+    "coarse_boundary": 1056,
+    "appended_tokens": 128,
+    "repetitions": 5,
+    "prefill_budget": {
+      "native": 528,
+      "other_arms": 2112
+    },
+    "matched_comparison": "aligned/deep/exact arms share the same single-forward implementation and 2112-token budget",
+    "gpu_reset_between_requests": true,
+    "cpu_cache_retained_within_repetition": true,
+    "shm_warning": "64 MiB /dev/shm; all arms use the same pickle fallback"
+  },
+  "by_gap": [
+    {
+      "gap_tokens": 0,
+      "native": {
+        "mean_ttft_ms": 134.024,
+        "median_ttft_ms": 132.14,
+        "min_ttft_ms": 131.05,
+        "max_ttft_ms": 138.9,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 128,
+        "samples": [
+          138.9,
+          136.88,
+          132.14,
+          131.05,
+          131.15
+        ]
+      },
+      "aligned": {
+        "mean_ttft_ms": 140.34,
+        "median_ttft_ms": 140.73,
+        "min_ttft_ms": 134.01,
+        "max_ttft_ms": 144.4,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 128,
+        "samples": [
+          134.01,
+          142.72,
+          144.4,
+          139.84,
+          140.73
+        ]
+      },
+      "deep": {
+        "mean_ttft_ms": 139.04399999999998,
+        "median_ttft_ms": 141.13,
+        "min_ttft_ms": 126.7,
+        "max_ttft_ms": 146.19,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 128,
+        "samples": [
+          146.19,
+          141.13,
+          126.7,
+          141.91,
+          139.29
+        ]
+      },
+      "exact_recovery_only": {
+        "mean_ttft_ms": 193.978,
+        "median_ttft_ms": 161.71,
+        "min_ttft_ms": 158.74,
+        "max_ttft_ms": 323.54,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 128,
+        "samples": [
+          323.54,
+          160.27,
+          161.71,
+          165.63,
+          158.74
+        ]
+      },
+      "exact_steady": {
+        "mean_ttft_ms": 154.582,
+        "median_ttft_ms": 157.29,
+        "min_ttft_ms": 132.71,
+        "max_ttft_ms": 164.58,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 128,
+        "samples": [
+          157.29,
+          162.15,
+          156.18,
+          164.58,
+          132.71
+        ]
+      }
+    },
+    {
+      "gap_tokens": 64,
+      "native": {
+        "mean_ttft_ms": 135.84,
+        "median_ttft_ms": 135.37,
+        "min_ttft_ms": 133.47,
+        "max_ttft_ms": 139.27,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 192,
+        "samples": [
+          139.27,
+          137.29,
+          133.47,
+          135.37,
+          133.8
+        ]
+      },
+      "aligned": {
+        "mean_ttft_ms": 145.63,
+        "median_ttft_ms": 144.64,
+        "min_ttft_ms": 143.44,
+        "max_ttft_ms": 149.42,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 192,
+        "samples": [
+          147.15,
+          144.64,
+          143.44,
+          143.5,
+          149.42
+        ]
+      },
+      "deep": {
+        "mean_ttft_ms": 144.356,
+        "median_ttft_ms": 145.77,
+        "min_ttft_ms": 135.08,
+        "max_ttft_ms": 148.71,
+        "mean_cached_tokens": 1120,
+        "mean_forward_tokens": 128,
+        "samples": [
+          144.71,
+          145.77,
+          135.08,
+          148.71,
+          147.51
+        ]
+      },
+      "exact_recovery_only": {
+        "mean_ttft_ms": 155.33599999999998,
+        "median_ttft_ms": 158.04,
+        "min_ttft_ms": 146.91,
+        "max_ttft_ms": 160.66,
+        "mean_cached_tokens": 1120,
+        "mean_forward_tokens": 128,
+        "samples": [
+          160.66,
+          151.93,
+          159.14,
+          146.91,
+          158.04
+        ]
+      },
+      "exact_steady": {
+        "mean_ttft_ms": 160.022,
+        "median_ttft_ms": 157.73,
+        "min_ttft_ms": 156.06,
+        "max_ttft_ms": 165.94,
+        "mean_cached_tokens": 1120,
+        "mean_forward_tokens": 128,
+        "samples": [
+          156.06,
+          157.73,
+          165.94,
+          156.4,
+          163.98
+        ]
+      }
+    },
+    {
+      "gap_tokens": 128,
+      "native": {
+        "mean_ttft_ms": 131.31,
+        "median_ttft_ms": 134.7,
+        "min_ttft_ms": 123.66,
+        "max_ttft_ms": 135.58,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 256,
+        "samples": [
+          134.97,
+          127.64,
+          135.58,
+          123.66,
+          134.7
+        ]
+      },
+      "aligned": {
+        "mean_ttft_ms": 143.086,
+        "median_ttft_ms": 144.31,
+        "min_ttft_ms": 136.22,
+        "max_ttft_ms": 148.16,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 256,
+        "samples": [
+          148.16,
+          136.22,
+          144.31,
+          138.99,
+          147.75
+        ]
+      },
+      "deep": {
+        "mean_ttft_ms": 143.494,
+        "median_ttft_ms": 143.73,
+        "min_ttft_ms": 137.72,
+        "max_ttft_ms": 150.98,
+        "mean_cached_tokens": 1184,
+        "mean_forward_tokens": 128,
+        "samples": [
+          138.89,
+          137.72,
+          146.15,
+          143.73,
+          150.98
+        ]
+      },
+      "exact_recovery_only": {
+        "mean_ttft_ms": 153.242,
+        "median_ttft_ms": 150.43,
+        "min_ttft_ms": 146.03,
+        "max_ttft_ms": 167.38,
+        "mean_cached_tokens": 1184,
+        "mean_forward_tokens": 128,
+        "samples": [
+          150.43,
+          146.03,
+          167.38,
+          147.84,
+          154.53
+        ]
+      },
+      "exact_steady": {
+        "mean_ttft_ms": 150.484,
+        "median_ttft_ms": 157.48,
+        "min_ttft_ms": 120.5,
+        "max_ttft_ms": 158.99,
+        "mean_cached_tokens": 1184,
+        "mean_forward_tokens": 128,
+        "samples": [
+          120.5,
+          158.99,
+          157.48,
+          156.97,
+          158.48
+        ]
+      }
+    },
+    {
+      "gap_tokens": 256,
+      "native": {
+        "mean_ttft_ms": 136.43,
+        "median_ttft_ms": 136.29,
+        "min_ttft_ms": 132.94,
+        "max_ttft_ms": 141.66,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 384,
+        "samples": [
+          134.89,
+          132.94,
+          136.37,
+          136.29,
+          141.66
+        ]
+      },
+      "aligned": {
+        "mean_ttft_ms": 140.684,
+        "median_ttft_ms": 143.84,
+        "min_ttft_ms": 123.18,
+        "max_ttft_ms": 149.92,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 384,
+        "samples": [
+          123.18,
+          140.88,
+          143.84,
+          149.92,
+          145.6
+        ]
+      },
+      "deep": {
+        "mean_ttft_ms": 147.672,
+        "median_ttft_ms": 148.23,
+        "min_ttft_ms": 139.53,
+        "max_ttft_ms": 155.25,
+        "mean_cached_tokens": 1312,
+        "mean_forward_tokens": 128,
+        "samples": [
+          143.88,
+          155.25,
+          151.47,
+          139.53,
+          148.23
+        ]
+      },
+      "exact_recovery_only": {
+        "mean_ttft_ms": 159.546,
+        "median_ttft_ms": 159.79,
+        "min_ttft_ms": 154.0,
+        "max_ttft_ms": 164.75,
+        "mean_cached_tokens": 1312,
+        "mean_forward_tokens": 128,
+        "samples": [
+          164.75,
+          156.88,
+          162.31,
+          154.0,
+          159.79
+        ]
+      },
+      "exact_steady": {
+        "mean_ttft_ms": 150.696,
+        "median_ttft_ms": 156.62,
+        "min_ttft_ms": 128.37,
+        "max_ttft_ms": 167.8,
+        "mean_cached_tokens": 1312,
+        "mean_forward_tokens": 128,
+        "samples": [
+          141.91,
+          156.62,
+          158.78,
+          167.8,
+          128.37
+        ]
+      }
+    },
+    {
+      "gap_tokens": 384,
+      "native": {
+        "mean_ttft_ms": 134.498,
+        "median_ttft_ms": 137.0,
+        "min_ttft_ms": 125.17,
+        "max_ttft_ms": 141.4,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 512,
+        "samples": [
+          125.17,
+          130.53,
+          141.4,
+          138.39,
+          137.0
+        ]
+      },
+      "aligned": {
+        "mean_ttft_ms": 142.518,
+        "median_ttft_ms": 143.61,
+        "min_ttft_ms": 132.79,
+        "max_ttft_ms": 149.03,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 512,
+        "samples": [
+          141.84,
+          132.79,
+          145.32,
+          149.03,
+          143.61
+        ]
+      },
+      "deep": {
+        "mean_ttft_ms": 141.84799999999998,
+        "median_ttft_ms": 146.98,
+        "min_ttft_ms": 123.0,
+        "max_ttft_ms": 148.39,
+        "mean_cached_tokens": 1440,
+        "mean_forward_tokens": 128,
+        "samples": [
+          146.98,
+          123.0,
+          143.6,
+          147.27,
+          148.39
+        ]
+      },
+      "exact_recovery_only": {
+        "mean_ttft_ms": 146.418,
+        "median_ttft_ms": 154.75,
+        "min_ttft_ms": 104.66,
+        "max_ttft_ms": 163.6,
+        "mean_cached_tokens": 1440,
+        "mean_forward_tokens": 128,
+        "samples": [
+          154.75,
+          104.66,
+          152.64,
+          156.44,
+          163.6
+        ]
+      },
+      "exact_steady": {
+        "mean_ttft_ms": 148.388,
+        "median_ttft_ms": 155.2,
+        "min_ttft_ms": 125.28,
+        "max_ttft_ms": 160.68,
+        "mean_cached_tokens": 1440,
+        "mean_forward_tokens": 128,
+        "samples": [
+          160.68,
+          125.28,
+          160.66,
+          155.2,
+          140.12
+        ]
+      }
+    },
+    {
+      "gap_tokens": 512,
+      "native": {
+        "mean_ttft_ms": 201.45,
+        "median_ttft_ms": 198.62,
+        "min_ttft_ms": 193.62,
+        "max_ttft_ms": 214.47,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 640,
+        "samples": [
+          193.62,
+          198.62,
+          214.47,
+          202.28,
+          198.26
+        ]
+      },
+      "aligned": {
+        "mean_ttft_ms": 198.78,
+        "median_ttft_ms": 199.57,
+        "min_ttft_ms": 183.28,
+        "max_ttft_ms": 207.75,
+        "mean_cached_tokens": 1056,
+        "mean_forward_tokens": 640,
+        "samples": [
+          197.1,
+          207.75,
+          183.28,
+          199.57,
+          206.2
+        ]
+      },
+      "deep": {
+        "mean_ttft_ms": 197.47,
+        "median_ttft_ms": 196.85,
+        "min_ttft_ms": 189.67,
+        "max_ttft_ms": 204.87,
+        "mean_cached_tokens": 1568,
+        "mean_forward_tokens": 128,
+        "samples": [
+          196.85,
+          189.67,
+          196.45,
+          199.51,
+          204.87
+        ]
+      },
+      "exact_recovery_only": {
+        "mean_ttft_ms": 156.34,
+        "median_ttft_ms": 162.43,
+        "min_ttft_ms": 136.19,
+        "max_ttft_ms": 164.34,
+        "mean_cached_tokens": 1568,
+        "mean_forward_tokens": 128,
+        "samples": [
+          156.05,
+          162.43,
+          162.69,
+          164.34,
+          136.19
+        ]
+      },
+      "exact_steady": {
+        "mean_ttft_ms": 166.336,
+        "median_ttft_ms": 166.35,
+        "min_ttft_ms": 163.74,
+        "max_ttft_ms": 168.69,
+        "mean_cached_tokens": 1568,
+        "mean_forward_tokens": 128,
+        "samples": [
+          163.74,
+          166.35,
+          168.69,
+          166.04,
+          166.86
+        ]
+      }
+    }
+  ],
+  "correctness": {
+    "native": {
+      "compared_first_tokens": 60,
+      "first_text_mismatches": 0
+    },
+    "aligned": {
+      "compared_first_tokens": 60,
+      "first_text_mismatches": 0
+    },
+    "deep": {
+      "compared_first_tokens": 60,
+      "first_text_mismatches": 0
+    },
+    "exact_recovery_only": {
+      "compared_first_tokens": 60,
+      "first_text_mismatches": 0
+    },
+    "exact_steady": {
+      "compared_first_tokens": 60,
+      "first_text_mismatches": 0
+    }
+  }
+}

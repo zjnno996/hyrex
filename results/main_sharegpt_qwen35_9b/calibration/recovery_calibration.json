@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "model_name": "Qwen3.5-9B",
+  "h2d_gbps": 19.112444193511603,
+  "full_replay_ms_per_token": 0.12585632086715184,
+  "recurrent_replay_ms_per_token": 0.12588221709280306,
+  "provenance": {
+    "kind": "native_scheduler_feedback",
+    "server_log": "/tmp/online_hyrex_c4_8012.log",
+    "server_log_sha256": "ba67428bcf6e2792f59cc73ac17f3b7975cbe94d8dac307ff59245efb450b864",
+    "result": "/root/hyrex_results/main_sharegpt_qwen35_9b/calibration/native_feedback_result.jsonl",
+    "result_sha256": "4044dd9d10d3f7992c07ce6116efd72e239b2aa74d612f9710e59fd82c5e416a"
+  }
+}

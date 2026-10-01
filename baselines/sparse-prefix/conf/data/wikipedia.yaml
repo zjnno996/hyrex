@@ -1,0 +1,27 @@
+defaults:
+  - base
+  - _self_
+
+_target_: spase_cache.datasets.revisions.WikipediaDataset
+name: wikipedia
+format: revision
+raw_dir: data/wikipedia
+processed: data/wikipedia_${run_name}.parquet
+max_revisions: 100    # max revisions per article
+skip_fetch: True # false
+
+fetch:
+  max_revisions: 500
+  min_words: 4000
+  max_words: 10000
+  articles:
+    - "Evolution"
+    - "Machine learning"
+    - "Python (programming language)"
+    - "Solar System"
+    - "Photosynthesis"
+    - "Quantum computing"
+    - "Bitcoin"
+    - "Gravity"
+    - "Vaccination"
+    - "Plate tectonics"
